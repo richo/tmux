@@ -1,0 +1,111 @@
+# fixes lintian's complains about missing hyphens.
+--- a/tmux.1
++++ b/tmux.1
+@@ -334,13 +334,13 @@
+ .Pp
+ Examples include:
+ .Bd -literal -offset indent
+-refresh-client -t/dev/ttyp2
++refresh-client \-t/dev/ttyp2
+ 
+-rename-session -tfirst newname
++rename-session \-tfirst newname
+ 
+-set-window-option -t:0 monitor-activity on
++set-window-option \-t:0 monitor-activity on
+ 
+-new-window ; split-window -d
++new-window ; split-window \-d
+ .Ed
+ .Sh CLIENTS AND SESSIONS
+ The following commands are available:
+@@ -670,7 +670,7 @@
+ and the result executed as a command.
+ If
+ .Ar template
+-is not given, "detach-client -t '%%'" is used.
++is not given, "detach-client \-t '%%'" is used.
+ This command works only from inside
+ .Nm .
+ .It Xo
+@@ -687,7 +687,7 @@
+ and the result executed as a command.
+ If
+ .Ar template
+-is not given, "switch-client -t '%%'" is used.
++is not given, "switch-client \-t '%%'" is used.
+ This command works only from inside
+ .Nm .
+ .It Xo
+@@ -704,7 +704,7 @@
+ and the result executed as a command.
+ If
+ .Ar template
+-is not given, "select-window -t '%%'" is used.
++is not given, "select-window \-t '%%'" is used.
+ This command works only from inside
+ .Nm .
+ .It Ic display-panes Op Fl t Ar target-client
+@@ -870,7 +870,7 @@
+ option only opens a new pipe if no previous pipe exists, allowing a pipe to
+ be toggled with a single key, for example:
+ .Bd -literal -offset indent
+-bind-key C-p pipe-pane -o 'cat >>~/output'
++bind-key C-p pipe-pane \-o 'cat >>~/output'
+ .Ed
+ .It Xo Ic previous-window
+ .Op Fl a
+@@ -1493,7 +1493,7 @@
+ Examples are:
+ .Bd -literal -offset indent
+ #(sysctl vm.loadavg)
+-#[fg=yellow,bold]#(apm -l)%%#[default] [#S]
++#[fg=yellow,bold]#(apm \-l)%%#[default] [#S]
+ .Ed
+ .Pp
+ Where appropriate, special character sequences may be prefixed with a number to
+@@ -1673,7 +1673,7 @@
+ .Ic rename-window .
+ It may be switched off globally with:
+ .Bd -literal -offset indent
+-set-window-option -g automatic-rename off
++set-window-option \-g automatic-rename off
+ .Ed
+ .Pp
+ .It Ic clock-mode-colour Ar colour
+@@ -2189,29 +2189,29 @@
+ .Pp
+ Changing the default prefix key:
+ .Bd -literal -offset indent
+-set-option -g prefix C-a
++set-option \-g prefix C-a
+ unbind-key C-b
+ bind-key C-a send-prefix
+ .Ed
+ .Pp
+ Turning the status line off, or changing its colour:
+ .Bd -literal -offset indent
+-set-option -g status off
+-set-option -g status-bg blue
++set-option \-g status off
++set-option \-g status-bg blue
+ .Ed
+ .Pp
+ Setting other options, such as the default command,
+ or locking after 30 minutes of inactivity:
+ .Bd -literal -offset indent
+-set-option -g default-command "exec /bin/ksh"
+-set-option -g lock-after-time 1800
++set-option \-g default-command "exec /bin/ksh"
++set-option \-g lock-after-time 1800
+ .Ed
+ .Pp
+ Creating new key bindings:
+ .Bd -literal -offset indent
+ bind-key b set-option status
+ bind-key / command-prompt "split-window 'exec man %%'"
+-bind-key S command-prompt "new-window -n %1 'ssh %1'"
++bind-key S command-prompt "new-window \-n %1 'ssh %1'"
+ .Ed
+ .Sh SEE ALSO
+ .Xr pty 4
