@@ -1,3 +1,9 @@
+tmux (1.1-2) UNRELEASED; urgency=low
+
+  * bump to standard version 3.8.4 (no changes needed).
+
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Fri, 05 Feb 2010 14:20:11 +0100
+
 tmux (1.1-1) unstable; urgency=low
 
   [ Karl Ferdinand Ebert ]

@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Karl Ferdinand Ebert <kfebert@gmail.com>
 Build-Depends: debhelper (>= 7), libncurses5-dev, quilt
-Standards-Version: 3.8.3
+Standards-Version: 3.8.4
 Homepage: http://sf.net/projects/tmux
 
 Package: tmux
