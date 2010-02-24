@@ -1,6 +1,7 @@
-tmux (1.1-2) UNRELEASED; urgency=low
+tmux (1.1-2) unstable; urgency=low
 
-  * bump to standard version 3.8.4 (no changes needed).
+  * Bump to standard version 3.8.4 (no changes needed), adopted new source
+    format and switched parts of debian/rules to dh_auto_*.
 
  -- Karl Ferdinand Ebert <kfebert@gmail.com>  Fri, 05 Feb 2010 14:20:11 +0100
 
