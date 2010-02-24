@@ -8,14 +8,14 @@ include /usr/share/quilt/quilt.make
 
 configure-stamp: patch
 	dh_testdir
-	./configure
+	dh_auto_configure
 	touch configure-stamp
 
 build: build-stamp
 
 build-stamp: configure-stamp
 	dh_testdir
-	$(MAKE)
+	dh_auto_build
 	touch $@
 
 clean: unpatch
@@ -24,16 +24,17 @@ clean: unpatch
 	rm -f build-stamp configure-stamp
 	rm -f tmux *.o .depend *~ *.core *.log compat/*.o
 	rm -f config.h config.mk
-	#$(MAKE) clean
+	dh_auto_clean
 	dh_clean 
 
 install: build
 	dh_testdir
 	dh_testroot
-	#dh_clean -k
+	dh_prep
 	dh_prep
 	dh_installdirs
-	$(MAKE) DESTDIR=$(CURDIR)/debian/tmux install
+	#$(MAKE) DESTDIR=$(CURDIR)/debian/tmux install
+	dh_auto_install
 	# lintian override for sgid 
 	install -m 755 -d $(CURDIR)/debian/tmux/usr/share/lintian/overrides
 	install -m 644  debian/tmux.lintian.overrides $(CURDIR)/debian/tmux/usr/share/lintian/overrides/tmux
