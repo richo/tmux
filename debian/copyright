@@ -129,7 +129,7 @@ License: BSD-2
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-The Debian packaging is Copyright (C) 2008, 2009, Karl Ferdinand Ebert 
+The Debian packaging is Copyright (C) 2008, 2009, 2010 Karl Ferdinand Ebert 
 <kfebert@gmail.com> and is licensed under BSD-2 except scripts taken from the 
 screen package of Debian but modified for tmux and the README.source from the
  azureus package of Debian. Those are:
