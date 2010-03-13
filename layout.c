@@ -1,4 +1,4 @@
-/* $Id: layout.c,v 1.16 2009/07/20 15:42:05 tcunha Exp $ */
+/* $Id: layout.c,v 1.18 2010/01/08 16:31:35 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -45,13 +45,13 @@ layout_create_cell(struct layout_cell *lcparent)
 	lc->parent = lcparent;
 
 	TAILQ_INIT(&lc->cells);
-	
+
 	lc->sx = UINT_MAX;
 	lc->sy = UINT_MAX;
-	
+
 	lc->xoff = UINT_MAX;
 	lc->yoff = UINT_MAX;
-	
+
 	lc->wp = NULL;
 
 	return (lc);
@@ -201,8 +201,8 @@ layout_fix_panes(struct window *w, u_int wsx, u_int wsy)
 			if (sx < 1)
 				sx = lc->sx;
 		}
-		
-		/* 
+
+		/*
 		 * Similarly for the vertical size; the minimum vertical size
 		 * is two because scroll regions cannot be one line.
 		 */
@@ -231,7 +231,7 @@ layout_resize_check(struct layout_cell *lc, enum layout_type type)
 			available = lc->sx;
 		else
 			available = lc->sy;
-		
+
 		if (available > PANE_MINIMUM)
 			available -= PANE_MINIMUM;
 		else
@@ -269,7 +269,7 @@ layout_resize_adjust(struct layout_cell *lc, enum layout_type type, int change)
 		lc->sx += change;
 	else
 		lc->sy += change;
-	
+
 	/* If this is a leaf cell, that is all that is necessary. */
 	if (type == LAYOUT_WINDOWPANE)
 		return;
@@ -281,8 +281,8 @@ layout_resize_adjust(struct layout_cell *lc, enum layout_type type, int change)
 		return;
 	}
 
-	/* 
-	 * Child cell runs in the same direction. Adjust each child equally 
+	/*
+	 * Child cell runs in the same direction. Adjust each child equally
 	 * until no further change is possible.
 	 */
 	while (change != 0) {
@@ -327,10 +327,10 @@ layout_resize(struct window *w, u_int sx, u_int sy)
 	struct layout_cell	*lc = w->layout_root;
 	int			 xlimit, ylimit, xchange, ychange;
 
-	/* 
+	/*
 	 * Adjust horizontally. Do not attempt to reduce the layout lower than
 	 * the minimum (more than the amount returned by layout_resize_check).
-	 * 
+	 *
 	 * This can mean that the window size is smaller than the total layout
 	 * size: redrawing this is handled at a higher level, but it does leave
 	 * a problem with growing the window size here: if the current size is
@@ -366,7 +366,7 @@ layout_resize(struct window *w, u_int sx, u_int sy)
 	}
 	if (ychange != 0)
 		layout_resize_adjust(lc, LAYOUT_TOPBOTTOM, ychange);
-	
+
 	/* Fix cell offsets. */
 	layout_fix_offsets(lc);
 	layout_fix_panes(w, sx, sy);
@@ -408,7 +408,7 @@ layout_resize_pane(struct window_pane *wp, enum layout_type type, int change)
 		if (size == 0)	/* no more change possible */
 			break;
 	}
-	
+
 	/* Fix cell offsets. */
 	layout_fix_offsets(wp->window->layout_root);
 	layout_fix_panes(wp->window, wp->window->sx, wp->window->sy);
@@ -423,14 +423,14 @@ layout_resize_pane_grow(
 
 	/* Growing. Always add to the current cell. */
 	lcadd = lc;
-			
+
 	/* Look towards the tail for a suitable cell for reduction. */
 	lcremove = TAILQ_NEXT(lc, entry);
 	while (lcremove != NULL) {
 		size = layout_resize_check(lcremove, type);
 		if (size > 0)
 			break;
-		lcremove = TAILQ_NEXT(lcremove, entry);	
+		lcremove = TAILQ_NEXT(lcremove, entry);
 	}
 
 	/* If none found, look towards the head. */
@@ -485,10 +485,20 @@ layout_resize_pane_shrink(
 	return (size);
 }
 
-/* Split a pane into two. size is a hint, or -1 for default half/half split. */
-int
-layout_split_pane(struct window_pane *wp,
-    enum layout_type type, int size, struct window_pane *new_wp)
+/* Assign window pane to newly split cell. */
+void
+layout_assign_pane(struct layout_cell *lc, struct window_pane *wp)
+{
+	layout_make_leaf(lc, wp);
+	layout_fix_panes(wp->window, wp->window->sx, wp->window->sy);
+}
+
+/*
+ * Split a pane into two. size is a hint, or -1 for default half/half
+ * split. This must be followed by layout_assign_pane before much else happens!
+ **/
+struct layout_cell *
+layout_split_pane(struct window_pane *wp, enum layout_type type, int size)
 {
 	struct layout_cell     *lc, *lcparent, *lcnew;
 	u_int			sx, sy, xoff, yoff, size1, size2;
@@ -505,16 +515,16 @@ layout_split_pane(struct window_pane *wp,
 	switch (type) {
 	case LAYOUT_LEFTRIGHT:
 		if (sx < PANE_MINIMUM * 2 + 1)
-			return (-1);
+			return (NULL);
 		break;
 	case LAYOUT_TOPBOTTOM:
 		if (sy < PANE_MINIMUM * 2 + 1)
-			return (-1);
+			return (NULL);
 		break;
 	default:
 		fatalx("bad layout type");
 	}
-	
+
 	if (lc->parent != NULL && lc->parent->type == type) {
 		/*
 		 * If the parent exists and is of the same type as the split,
@@ -528,7 +538,7 @@ layout_split_pane(struct window_pane *wp,
 		/*
 		 * Otherwise create a new parent and insert it.
 		 */
-		
+
 		/* Create and insert the replacement parent. */
 		lcparent = layout_create_cell(lc->parent);
 		layout_make_node(lcparent, type);
@@ -537,11 +547,11 @@ layout_split_pane(struct window_pane *wp,
 			wp->window->layout_root = lcparent;
 		else
 			TAILQ_REPLACE(&lc->parent->cells, lc, lcparent, entry);
-		
+
 		/* Insert the old cell. */
 		lc->parent = lcparent;
 		TAILQ_INSERT_HEAD(&lcparent->cells, lc, entry);
-		
+
 		/* Create the new child cell. */
 		lcnew = layout_create_cell(lcparent);
 		TAILQ_INSERT_TAIL(&lcparent->cells, lcnew, entry);
@@ -554,7 +564,7 @@ layout_split_pane(struct window_pane *wp,
 	case LAYOUT_LEFTRIGHT:
 		if (size < 0)
 			size2 = ((sx + 1) / 2) - 1;
- 		else
+		else
 			size2 = size;
 		if (size2 < PANE_MINIMUM)
 			size2 = PANE_MINIMUM;
@@ -583,12 +593,8 @@ layout_split_pane(struct window_pane *wp,
 
 	/* Assign the panes. */
 	layout_make_leaf(lc, wp);
-	layout_make_leaf(lcnew, new_wp);
 
-	/* Fix pane offsets and sizes. */
-	layout_fix_panes(wp->window, wp->window->sx, wp->window->sy);
-
-	return (0);
+	return (lcnew);
 }
 
 /* Destroy the layout associated with a pane and redistribute the space. */
@@ -600,7 +606,7 @@ layout_close_pane(struct window_pane *wp)
 	lc = wp->layout_cell;
 	lcparent = lc->parent;
 
-	/* 
+	/*
 	 * If no parent, this is the last pane so window close is imminent and
 	 * there is no need to resize anything.
 	 */
@@ -623,8 +629,8 @@ layout_close_pane(struct window_pane *wp)
 	/* Remove this from the parent's list. */
 	TAILQ_REMOVE(&lcparent->cells, lc, entry);
 	layout_free_cell(lc);
-	
-	/* 
+
+	/*
 	 * If the parent now has one cell, remove the parent from the tree and
 	 * replace it by that cell.
 	 */

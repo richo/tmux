@@ -1,4 +1,4 @@
-/* $Id: session.c,v 1.70 2009/11/04 22:42:31 tcunha Exp $ */
+/* $Id: session.c,v 1.74 2009/12/26 23:45:21 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -164,7 +164,7 @@ session_create(const char *name, const char *cmd, const char *cwd,
 		s->name = xstrdup(name);
 	else
 		xasprintf(&s->name, "%u", i);
-	
+
 	if (cmd != NULL) {
 		if (session_new(s, NULL, cmd, cwd, idx, cause) == NULL) {
 			session_destroy(s);
@@ -207,7 +207,7 @@ session_destroy(struct session *s)
 		winlink_remove(&s->windows, RB_ROOT(&s->windows));
 
 	xfree(s->name);
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&dead_sessions); i++) {
 		if (ARRAY_ITEM(&dead_sessions, i) == NULL) {
 			ARRAY_SET(&dead_sessions, i, s);
@@ -232,7 +232,7 @@ session_index(struct session *s, u_int *i)
 
 /* Create a new window on a session. */
 struct winlink *
-session_new(struct session *s, 
+session_new(struct session *s,
     const char *name, const char *cmd, const char *cwd, int idx, char **cause)
 {
 	struct window	*w;
@@ -318,7 +318,7 @@ session_next_activity(struct session *s, struct winlink *wl)
 			break;
 		if (session_alert_has(s, wl, WINDOW_CONTENT))
 			break;
-		wl = winlink_next(&s->windows, wl);
+		wl = winlink_next(wl);
 	}
 	return (wl);
 }
@@ -332,7 +332,7 @@ session_next(struct session *s, int activity)
 	if (s->curw == NULL)
 		return (-1);
 
-	wl = winlink_next(&s->windows, s->curw);
+	wl = winlink_next(s->curw);
 	if (activity)
 		wl = session_next_activity(s, wl);
 	if (wl == NULL) {
@@ -359,7 +359,7 @@ session_previous_activity(struct session *s, struct winlink *wl)
 			break;
 		if (session_alert_has(s, wl, WINDOW_CONTENT))
 			break;
-		wl = winlink_previous(&s->windows, wl);
+		wl = winlink_previous(wl);
 	}
 	return (wl);
 }
@@ -373,7 +373,7 @@ session_previous(struct session *s, int activity)
 	if (s->curw == NULL)
 		return (-1);
 
-	wl = winlink_previous(&s->windows, s->curw);
+	wl = winlink_previous(s->curw);
 	if (activity)
 		wl = session_previous_activity(s, wl);
 	if (wl == NULL) {
@@ -462,7 +462,7 @@ session_group_index(struct session_group *sg)
 
 /*
  * Add a session to the session group containing target, creating it if
- * necessary. 
+ * necessary.
  */
 void
 session_group_add(struct session *target, struct session *s)
@@ -548,10 +548,10 @@ session_group_synchronize1(struct session *target, struct session *s)
 		return;
 
 	/* If the current window has vanished, move to the next now. */
-	if (s->curw != NULL) {
-		while (winlink_find_by_index(ww, s->curw->idx) == NULL)
-			session_next(s, 0);
-	}
+	if (s->curw != NULL &&
+	    winlink_find_by_index(ww, s->curw->idx) == NULL &&
+	    session_last(s) != 0 && session_previous(s, 0) != 0)
+		session_next(s, 0);
 
 	/* Save the old pointer and reset it. */
 	memcpy(&old_windows, &s->windows, sizeof old_windows);
@@ -588,7 +588,6 @@ session_group_synchronize1(struct session *target, struct session *s)
 	/* Then free the old winlinks list. */
 	while (!RB_EMPTY(&old_windows)) {
 		wl = RB_ROOT(&old_windows);
-		RB_REMOVE(winlinks, &old_windows, wl);
-		xfree(wl);
+		winlink_remove(&old_windows, wl);
 	}
 }

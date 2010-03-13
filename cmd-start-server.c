@@ -1,4 +1,4 @@
-/* $Id: cmd-start-server.c,v 1.8 2009/07/28 22:12:16 tcunha Exp $ */
+/* $Id: cmd-start-server.c,v 1.10 2009/11/28 14:50:36 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,7 @@ int	cmd_start_server_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_start_server_entry = {
 	"start-server", "start",
 	"",
-	CMD_STARTSERVER, 0,
+	CMD_STARTSERVER, "",
 	NULL,
 	NULL,
 	cmd_start_server_exec,
@@ -37,6 +37,7 @@ const struct cmd_entry cmd_start_server_entry = {
 	NULL
 };
 
+/* ARGSUSED */
 int
 cmd_start_server_exec(unused struct cmd *self, unused struct cmd_ctx *ctx)
 {

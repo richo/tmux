@@ -1,4 +1,4 @@
-/* $Id: cfg.c,v 1.23 2009/10/28 23:12:38 tcunha Exp $ */
+/* $Id: cfg.c,v 1.26 2010/02/08 18:29:32 tcunha Exp $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -33,13 +33,17 @@
 void printflike2 cfg_print(struct cmd_ctx *, const char *, ...);
 void printflike2 cfg_error(struct cmd_ctx *, const char *, ...);
 
-char	 *cfg_cause;
+char	 	       *cfg_cause;
+int     	 	cfg_finished;
+struct causelist	cfg_causes = ARRAY_INITIALIZER;
 
+/* ARGSUSED */
 void printflike2
 cfg_print(unused struct cmd_ctx *ctx, unused const char *fmt, ...)
 {
 }
 
+/* ARGSUSED */
 void printflike2
 cfg_error(unused struct cmd_ctx *ctx, const char *fmt, ...)
 {
@@ -50,19 +54,36 @@ cfg_error(unused struct cmd_ctx *ctx, const char *fmt, ...)
 	va_end(ap);
 }
 
+void printflike2
+cfg_add_cause(struct causelist *causes, const char *fmt, ...)
+{
+	char	*cause;
+	va_list	 ap;
+
+	va_start(ap, fmt);
+	xvasprintf(&cause, fmt, ap);
+	va_end(ap);
+
+	ARRAY_ADD(causes, cause);
+}
+
+/*
+ * Load configuration file. Returns -1 for an error with a list of messages in
+ * causes. Note that causes and ncauses must be initialised by the caller!
+ */
 int
-load_cfg(const char *path, struct cmd_ctx *ctxin, char **cause)
+load_cfg(const char *path, struct cmd_ctx *ctxin, struct causelist *causes)
 {
 	FILE		*f;
 	u_int		 n;
-	char		*buf, *line, *ptr;
+	char		*buf, *line, *cause;
 	size_t		 len;
 	struct cmd_list	*cmdlist;
 	struct cmd_ctx	 ctx;
 
 	if ((f = fopen(path, "rb")) == NULL) {
-		xasprintf(cause, "%s: %s", path, strerror(errno));
-		return (1);
+		cfg_add_cause(causes, "%s: %s", path, strerror(errno));
+		return (-1);
 	}
 	n = 0;
 
@@ -78,10 +99,12 @@ load_cfg(const char *path, struct cmd_ctx *ctxin, char **cause)
 		}
 		n++;
 
-		if (cmd_string_parse(buf, &cmdlist, cause) != 0) {
-			if (*cause == NULL)
+		if (cmd_string_parse(buf, &cmdlist, &cause) != 0) {
+			if (cause == NULL)
 				continue;
-			goto error;
+			cfg_add_cause(causes, "%s: %u: %s", path, n, cause);
+			xfree(cause);
+			continue;
 		}
 		if (cmdlist == NULL)
 			continue;
@@ -105,23 +128,16 @@ load_cfg(const char *path, struct cmd_ctx *ctxin, char **cause)
 		cmd_list_exec(cmdlist, &ctx);
 		cmd_list_free(cmdlist);
 		if (cfg_cause != NULL) {
-			*cause = cfg_cause;
-			goto error;
+			cfg_add_cause(causes, "%s: %d: %s", path, n, cfg_cause);
+			xfree(cfg_cause);
+			continue;
 		}
 	}
 	if (line != NULL)
 		xfree(line);
 	fclose(f);
 
+	if (ARRAY_LENGTH(causes) != 0)
+		return (-1);
 	return (0);
-
-error:
-	if (line != NULL)
-		xfree(line);
-	fclose(f);
-
-	xasprintf(&ptr, "%s: %s at line %u", path, *cause, n);
-	xfree(*cause);
-	*cause = ptr;
-	return (1);
 }

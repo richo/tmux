@@ -1,4 +1,4 @@
-/* $Id: cmd-kill-session.c,v 1.15 2009/10/11 23:38:16 tcunha Exp $ */
+/* $Id: cmd-kill-session.c,v 1.17 2009/12/04 22:14:47 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -32,7 +32,7 @@ int	cmd_kill_session_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_kill_session_entry = {
 	"kill-session", NULL,
 	CMD_TARGET_SESSION_USAGE,
-	0, 0,
+	0, "",
 	cmd_target_init,
 	cmd_target_parse,
 	cmd_kill_session_exec,
@@ -45,7 +45,7 @@ cmd_kill_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct cmd_target_data	*data = self->data;
 	struct session		*s;
- 	struct client		*c;
+	struct client		*c;
 	u_int			 i;
 
 	if ((s = cmd_find_session(ctx, data->target)) == NULL)

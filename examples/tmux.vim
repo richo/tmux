@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language: tmux(1) configuration file
 " Maintainer: Tiago Cunha <me@tiagocunha.org>
-" Last Change: $Date: 2009/10/25 22:16:55 $
+" Last Change: $Date: 2010/02/26 13:33:22 $
 " License: This file is placed in the public domain.
 
 if version < 600
@@ -38,10 +38,11 @@ syn keyword tmuxCmds choose-window loadb load-buffer copyb copy-buffer suspendc
 syn keyword tmuxCmds suspend-client findw find-window breakp break-pane nextl
 syn keyword tmuxCmds next-layout rotatew rotate-window confirm[-before]
 syn keyword tmuxCmds clearhist clear-history selectl select-layout if[-shell]
-syn keyword tmuxCmds display[-message] set-environment show-environment
-syn keyword tmuxCmds choose-client displayp display-panes run[-shell] lockc
-syn keyword tmuxCmds lock-client locks lock-session lsp list-panes pipep
-syn keyword tmuxCmds pipe-pane
+syn keyword tmuxCmds display[-message] setenv set-environment showenv
+syn keyword tmuxCmds show-environment choose-client displayp display-panes
+syn keyword tmuxCmds run[-shell] lockc lock-client locks lock-session lsp
+syn keyword tmuxCmds list-panes pipep pipe-pane showmsgs show-messages capturep
+syn keyword tmuxCmds capture-pane joinp join-pane
 
 syn keyword tmuxOptsSet prefix status status-fg status-bg bell-action
 syn keyword tmuxOptsSet default-command history-limit status-left status-right
@@ -56,7 +57,10 @@ syn keyword tmuxOptsSet status-left-fg status-right-attr status-right-bg
 syn keyword tmuxOptsSet status-right-fg update-environment base-index
 syn keyword tmuxOptsSet display-panes-colour display-panes-time default-shell
 syn keyword tmuxOptsSet set-titles-string lock-command lock-server
-syn keyword tmuxOptsSet mouse-select-pane
+syn keyword tmuxOptsSet mouse-select-pane message-limit quiet escape-time
+syn keyword tmuxOptsSet pane-active-border-bg pane-active-border-fg
+syn keyword tmuxOptsSet pane-border-bg pane-border-fg
+syn keyword tmuxOptsSet display-panes-active-colour alternate-screen
 
 syn keyword tmuxOptsSetw monitor-activity aggressive-resize force-width
 syn keyword tmuxOptsSetw force-height remain-on-exit uft8 mode-fg mode-bg
@@ -66,12 +70,14 @@ syn keyword tmuxOptsSetw window-status-bg window-status-fg automatic-rename
 syn keyword tmuxOptsSetw main-pane-width main-pane-height monitor-content
 syn keyword tmuxOptsSetw window-status-current-attr window-status-current-bg
 syn keyword tmuxOptsSetw window-status-current-fg mode-mouse synchronize-panes
+syn keyword tmuxOptsSetw window-status-format window-status-current-format
+syn keyword tmuxOptsSetw word-separators
 
 syn keyword tmuxTodo FIXME NOTE TODO XXX contained
 
 syn match tmuxKey		/\(C-\|M-\|\^\)\p/	display
 syn match tmuxNumber 		/\d\+/			display
-syn match tmuxOptions		/\s-\a/			display
+syn match tmuxOptions		/\s-\a\+/		display
 syn match tmuxVariable		/\w\+=/			display
 syn match tmuxVariableExpansion	/\${\=\w\+}\=/		display
 

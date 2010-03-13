@@ -1,5 +1,17 @@
 tmux frequently asked questions
 
+******************************************************************************
+* PLEASE NOTE: most display problems are due to incorrect TERM! Before       *
+* reporting problems make SURE that TERM settings are correct inside and     *
+* outside tmux.                                                              *
+*                                                                            *
+* Inside tmux TERM must be "screen" or similar (such as "screen-256color").  *
+* Don't bother reporting problems where it isn't!                            *
+*                                                                            *
+* Outside, it must match your terminal: particularly, use "rxvt" for rxvt    *
+* and derivatives.                                                           *
+******************************************************************************
+
 * How is tmux different from GNU screen? What else does it offer?
 
 tmux offers several advantages over screen:
@@ -26,8 +38,9 @@ There are still a few features screen includes that tmux omits:
 
 * I found a bug! What do I do?
 
-Please send bug reports by email to nicm@users.sourceforge.net. Please
-include as much of the following information as possible:
+Please send bug reports by email to nicm@users.sourceforge.net or
+tmux-users@lists.sourceforge.net. Please include as much of the following
+information as possible:
 
 - the version of tmux you are running;
 - the operating system you are using and its version;
@@ -82,18 +95,16 @@ default) to the new key. For example:
 
 * How do I use UTF-8?
 
-When running tmux in a UTF-8 capable terminal, two things must be done to
-enable support. UTF-8 must be turned on in tmux; this may be done separately
-for each tmux window or globally by setting the "utf8" flag:
-
-	setw -g utf8 on
-
-As of release 0.9, tmux attempts to autodetect a UTF-8-capable terminal by
+When running tmux in a UTF-8 capable terminal, UTF-8 must be turned on in tmux;
+as of release 0.9, tmux attempts to autodetect a UTF-8-capable terminal by
 checking the LC_ALL, LC_CTYPE and LANG environment variables. list-clients may
 be used to check if this is detected correctly; if not, the -u command-line
 flag may be specified when creating or attaching a client to a tmux session:
 
 	$ tmux -u new
+
+Since the 1.0 release, tmux will turn on UTF-8 related options automatically
+(ie status-utf8, and utf8) if the above conditions are met.
 
 * How do I use a 256 colour terminal?
 
@@ -201,4 +212,31 @@ on the Window -> Translation configuration page. For example, change UTF-8 to
 ISO-8859-1 or CP437. It may also be necessary to adjust the way PuTTY treats
 line drawing characters in the lower part of the same configuration page.
 
-$Id: FAQ,v 1.29 2009/08/08 20:46:26 nicm Exp $
+* What is the best way to display the load average? Why no #L?
+
+It isn't possible to get the load average portably in code and it is preferable
+not to add portability goop. The following works on at least Linux, *BSD and OS
+X:
+
+uptime|awk '{split(substr($0, index($0, "load")), a, ":"); print a[2]}'
+
+* How do I attach the same session to multiple clients but with a different
+  current window, like screen -x?
+
+One or more of the windows can be linked into multiple sessions manually with
+link-window, or a grouped session with all the windows can be created with
+new-session -t.
+
+* Ctrl and arrow keys doesn't work in putty! What do I do?
+
+putty inverts the sense of the cursor key mode on ctrl, which is a bit hard for
+tmux to detect properly. To get ctrl keys right, change the terminfo settings
+so kUP5 (Ctrl-Up etc) are the adjusted versions, and disable smkx/rmkx so tmux
+doesn't change the mode. For example with this line in .tmux.conf (assuming you
+have TERM set to xterm):
+
+set -g terminal-overrides "xterm*:kLFT5=\eOD:kRIT5=\eOC:kUP5=\eOA:kDN5=\eOB:smkx@:rmkx@"
+
+Note that this will only work in tmux 1.2 and above.
+
+$Id: FAQ,v 1.36 2010/02/04 21:01:59 nicm Exp $

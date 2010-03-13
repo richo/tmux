@@ -1,4 +1,4 @@
-/* $Id: cmd-up-pane.c,v 1.12 2009/07/28 22:12:16 tcunha Exp $ */
+/* $Id: cmd-up-pane.c,v 1.14 2010/01/05 23:52:37 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,7 @@ int	cmd_up_pane_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_up_pane_entry = {
 	"up-pane", "upp",
 	CMD_TARGET_WINDOW_USAGE,
-	0, 0,
+	0, "",
 	cmd_target_init,
 	cmd_target_parse,
 	cmd_up_pane_exec,
@@ -54,6 +54,7 @@ cmd_up_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 			w->active = TAILQ_LAST(&w->panes, window_panes);
 	} while (!window_pane_visible(w->active));
 	server_status_window(wl->window);
+	server_redraw_window_borders(wl->window);
 
 	return (0);
 }

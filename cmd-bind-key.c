@@ -1,4 +1,4 @@
-/* $Id: cmd-bind-key.c,v 1.25 2009/07/28 23:19:06 tcunha Exp $ */
+/* $Id: cmd-bind-key.c,v 1.28 2010/01/25 17:12:44 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -46,7 +46,7 @@ struct cmd_bind_key_data {
 const struct cmd_entry cmd_bind_key_entry = {
 	"bind-key", "bind",
 	"[-cnr] [-t key-table] key command [arguments]",
-	0, 0,
+	0, "",
 	NULL,
 	cmd_bind_key_parse,
 	cmd_bind_key_exec,
@@ -79,7 +79,8 @@ cmd_bind_key_parse(struct cmd *self, int argc, char **argv, char **cause)
 			data->can_repeat = 1;
 			break;
 		case 't':
-			data->tablename = xstrdup(optarg);
+			if (data->tablename == NULL)
+				data->tablename = xstrdup(optarg);
 			break;
 		default:
 			goto usage;
@@ -152,7 +153,7 @@ cmd_bind_key_table(struct cmd *self, struct cmd_ctx *ctx)
 		ctx->error(ctx, "unknown command: %s", data->modecmd);
 		return (-1);
 	}
-	
+
 	mtmp.key = data->key & ~KEYC_PREFIX;
 	mtmp.mode = data->command_key ? 1 : 0;
 	if ((mbind = SPLAY_FIND(mode_key_tree, mtab->tree, &mtmp)) != NULL) {

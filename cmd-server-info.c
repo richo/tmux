@@ -1,4 +1,4 @@
-/* $Id: cmd-server-info.c,v 1.33 2009/11/04 22:42:31 tcunha Exp $ */
+/* $Id: cmd-server-info.c,v 1.37 2009/12/10 16:59:02 tcunha Exp $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -35,7 +35,7 @@ int	cmd_server_info_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_server_info_entry = {
 	"server-info", "info",
 	"",
-	0, 0,
+	0, "",
 	NULL,
 	NULL,
 	cmd_server_info_exec,
@@ -43,6 +43,7 @@ const struct cmd_entry cmd_server_info_entry = {
 	NULL
 };
 
+/* ARGSUSED */
 int
 cmd_server_info_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 {
@@ -69,8 +70,8 @@ cmd_server_info_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 	*strchr(tim, '\n') = '\0';
 	ctx->print(ctx,
 	    "tmux " BUILD ", pid %ld, started %s", (long) getpid(), tim);
-	ctx->print(ctx, "socket path %s, debug level %d%s",
-	    socket_path, debug_level, be_quiet ? ", quiet" : "");
+	ctx->print(
+	    ctx, "socket path %s, debug level %d", socket_path, debug_level);
 	if (uname(&un) == 0) {
 		ctx->print(ctx, "system is %s %s %s %s",
 		    un.sysname, un.release, un.version, un.machine);
@@ -93,12 +94,12 @@ cmd_server_info_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 		ctx->print(ctx, "%2d: %s (%d, %d): %s [%ux%u %s] "
 		    "[flags=0x%x/0x%x, references=%u]", i, c->tty.path,
 		    c->ibuf.fd, c->tty.fd, c->session->name,
-		    c->tty.sx, c->tty.sy, c->tty.termname, c->flags, 
+		    c->tty.sx, c->tty.sy, c->tty.termname, c->flags,
 		    c->tty.flags, c->references);
 	}
 	ctx->print(ctx, "%s", "");
 
- 	ctx->print(ctx, "Sessions: [%zu/%zu]",
+	ctx->print(ctx, "Sessions: [%zu/%zu]",
 	    sizeof (struct grid_cell), sizeof (struct grid_utf8));
 	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
 		s = ARRAY_ITEM(&sessions, i);
@@ -147,7 +148,7 @@ cmd_server_info_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 	}
 	ctx->print(ctx, "%s", "");
 
-  	ctx->print(ctx, "Terminals:");
+	ctx->print(ctx, "Terminals:");
 	SLIST_FOREACH(term, &tty_terms, entry) {
 		ctx->print(ctx, "%s [references=%u, flags=0x%x]:",
 		    term->name, term->references, term->flags);
@@ -179,7 +180,7 @@ cmd_server_info_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 	}
 	ctx->print(ctx, "%s", "");
 
-  	ctx->print(ctx, "Jobs:");
+	ctx->print(ctx, "Jobs:");
 	SLIST_FOREACH(job, &all_jobs, lentry) {
 		ctx->print(ctx, "%s [fd=%d, pid=%d, status=%d, flags=0x%x]",
 		    job->cmd, job->fd, job->pid, job->status, job->flags);

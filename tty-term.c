@@ -1,4 +1,4 @@
-/* $Id: tty-term.c,v 1.35 2009/10/28 23:01:44 tcunha Exp $ */
+/* $Id: tty-term.c,v 1.41 2009/12/18 07:42:30 nicm Exp $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -18,7 +18,11 @@
 
 #include <sys/types.h>
 
+#ifdef HAVE_BROKEN_CURSES_H
+#include <ncurses.h>
+#else
 #include <curses.h>
+#endif
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <string.h>
@@ -226,7 +230,7 @@ tty_term_override(struct tty_term *term, const char *overrides)
 	termnext = s;
 	while ((termstr = strsep(&termnext, ",")) != NULL) {
 		entnext = termstr;
-		
+
 		entstr = strsep(&entnext, ":");
 		if (entstr == NULL || entnext == NULL)
 			continue;
@@ -238,7 +242,7 @@ tty_term_override(struct tty_term *term, const char *overrides)
 
 			val = NULL;
 			removeflag = 0;
- 			if ((ptr = strchr(entstr, '=')) != NULL) {
+			if ((ptr = strchr(entstr, '=')) != NULL) {
 				*ptr++ = '\0';
 				val = xstrdup(ptr);
 				if (strunvis(val, ptr) == -1) {
@@ -320,10 +324,12 @@ tty_term_find(char *name, int fd, const char *overrides, char **cause)
 	if (setupterm(name, fd, &error) != OK) {
 		switch (error) {
 		case 1:
-			xasprintf(cause, "can't use hardcopy terminal: %s", name);
+			xasprintf(
+			    cause, "can't use hardcopy terminal: %s", name);
 			break;
 		case 0:
-			xasprintf(cause, "missing or unsuitable terminal: %s", name);
+			xasprintf(
+			    cause, "missing or unsuitable terminal: %s", name);
 			break;
 		case -1:
 			xasprintf(cause, "can't find terminfo database");
@@ -370,15 +376,13 @@ tty_term_find(char *name, int fd, const char *overrides, char **cause)
 	tty_term_override(term, overrides);
 
 	/* Delete curses data. */
+#if !defined(__FreeBSD_version) || __FreeBSD_version >= 700000
 	del_curterm(cur_term);
+#endif
 
 	/* These are always required. */
 	if (!tty_term_has(term, TTYC_CLEAR)) {
 		xasprintf(cause, "terminal does not support clear");
-		goto error;
-	}
-	if (!tty_term_has(term, TTYC_RI)) {
-		xasprintf(cause, "terminal does not support ri");
 		goto error;
 	}
 	if (!tty_term_has(term, TTYC_CUP)) {
@@ -389,21 +393,6 @@ tty_term_find(char *name, int fd, const char *overrides, char **cause)
 	/* These can be emulated so one of the two is required. */
 	if (!tty_term_has(term, TTYC_CUD1) && !tty_term_has(term, TTYC_CUD)) {
 		xasprintf(cause, "terminal does not support cud1 or cud");
-		goto error;
-	}
-	if (!tty_term_has(term, TTYC_IL1) && !tty_term_has(term, TTYC_IL)) {
-		xasprintf(cause, "terminal does not support il1 or il");
-		goto error;
-	}
-	if (!tty_term_has(term, TTYC_DL1) && !tty_term_has(term, TTYC_DL)) {
-		xasprintf(cause, "terminal does not support dl1 or dl");
-		goto error;
-	}
-	if (!tty_term_has(term, TTYC_ICH1) &&
-	    !tty_term_has(term, TTYC_ICH) && (!tty_term_has(term, TTYC_SMIR) ||
-	    !tty_term_has(term, TTYC_RMIR))) {
-		xasprintf(cause,
-		    "terminal does not support ich1 or ich or smir and rmir");
 		goto error;
 	}
 

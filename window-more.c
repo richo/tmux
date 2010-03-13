@@ -1,4 +1,4 @@
-/* $Id: window-more.c,v 1.38 2009/09/11 14:13:52 tcunha Exp $ */
+/* $Id: window-more.c,v 1.42 2010/02/08 18:10:07 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,7 @@ void	window_more_key(struct window_pane *, struct client *, int);
 
 void	window_more_redraw_screen(struct window_pane *);
 void	window_more_write_line(
-    	    struct window_pane *, struct screen_write_ctx *, u_int);
+	    struct window_pane *, struct screen_write_ctx *, u_int);
 
 void	window_more_scroll_up(struct window_pane *);
 void	window_more_scroll_down(struct window_pane *);
@@ -51,6 +51,16 @@ struct window_more_mode_data {
 	ARRAY_DECL(, char *)	list;
 	u_int			top;
 };
+
+void
+window_more_add(struct window_pane *wp, const char *fmt, ...)
+{
+	va_list	ap;
+
+	va_start(ap, fmt);
+	window_more_vadd(wp, fmt, ap);
+	va_end(ap);
+}
 
 void
 window_more_vadd(struct window_pane *wp, const char *fmt, va_list ap)
@@ -123,6 +133,7 @@ window_more_resize(struct window_pane *wp, u_int sx, u_int sy)
 	window_more_redraw_screen(wp);
 }
 
+/* ARGSUSED */
 void
 window_more_key(struct window_pane *wp, unused struct client *c, int key)
 {
@@ -134,9 +145,11 @@ window_more_key(struct window_pane *wp, unused struct client *c, int key)
 		window_pane_reset_mode(wp);
 		break;
 	case MODEKEYCHOICE_UP:
+	case MODEKEYCHOICE_SCROLLUP:
 		window_more_scroll_up(wp);
 		break;
 	case MODEKEYCHOICE_DOWN:
+	case MODEKEYCHOICE_SCROLLDOWN:
 		window_more_scroll_down(wp);
 		break;
 	case MODEKEYCHOICE_PAGEUP:
@@ -164,11 +177,11 @@ window_more_write_line(
 {
 	struct window_more_mode_data	*data = wp->modedata;
 	struct screen			*s = &data->screen;
-	struct options			*oo = &wp->window->options;	
+	struct options			*oo = &wp->window->options;
 	struct grid_cell		 gc;
 	char   				*msg, hdr[32];
 	size_t	 			 size;
- 	int				 utf8flag;
+	int				 utf8flag;
 
 	utf8flag = options_get_number(&wp->window->options, "utf8");
 	memcpy(&gc, &grid_default_cell, sizeof gc);

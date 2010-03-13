@@ -1,4 +1,4 @@
-/* $Id: cmd-load-buffer.c,v 1.11 2009/10/28 23:10:05 tcunha Exp $ */
+/* $Id: cmd-load-buffer.c,v 1.15 2010/02/26 13:30:07 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Tiago Cunha <me@tiagocunha.org>
@@ -16,13 +16,10 @@
  * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 #include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #include "tmux.h"
 
@@ -35,7 +32,7 @@ int	cmd_load_buffer_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_load_buffer_entry = {
 	"load-buffer", "loadb",
 	CMD_BUFFER_SESSION_USAGE " path",
-	CMD_ARG1, 0,
+	CMD_ARG1, "",
 	cmd_buffer_init,
 	cmd_buffer_parse,
 	cmd_load_buffer_exec,
@@ -48,10 +45,11 @@ cmd_load_buffer_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct cmd_buffer_data	*data = self->data;
 	struct session		*s;
-	struct stat		 sb;
 	FILE			*f;
-	u_char		      	*buf;
+	char		      	*pdata, *new_pdata;
+	size_t			 psize;
 	u_int			 limit;
+	int			 ch;
 
 	if ((s = cmd_find_session(ctx, data->target)) == NULL)
 		return (-1);
@@ -61,41 +59,41 @@ cmd_load_buffer_exec(struct cmd *self, struct cmd_ctx *ctx)
 		return (-1);
 	}
 
-	if (fstat(fileno(f), &sb) < 0) {
-		ctx->error(ctx, "%s: %s", data->arg, strerror(errno));
-		fclose(f);
-		return (-1);
+	pdata = NULL;
+	psize = 0;
+	while ((ch = getc(f)) != EOF) {
+		/* Do not let the server die due to memory exhaustion. */
+		if ((new_pdata = realloc(pdata, psize + 2)) == NULL) {
+			ctx->error(ctx, "realloc error: %s", strerror(errno));
+			goto error;
+		}
+		pdata = new_pdata;
+		pdata[psize++] = ch;
 	}
-
-	/*
-	 * We don't want to die due to memory exhaustion, hence xmalloc can't
-	 * be used here.
-	 */
-	if ((buf = malloc(sb.st_size + 1)) == NULL) {
-		ctx->error(ctx, "malloc error: %s", strerror(errno));
-		fclose(f);
-		return (-1);
+	if (ferror(f)) {
+		ctx->error(ctx, "%s: read error", data->arg);
+		goto error;
 	}
-
-	if (fread(buf, 1, sb.st_size, f) != (size_t) sb.st_size) {
-		ctx->error(ctx, "%s: fread error", data->arg);
-		xfree(buf);
-		fclose(f);
-		return (-1);
-	}
+	if (pdata != NULL)
+		pdata[psize] = '\0';
 
 	fclose(f);
 
 	limit = options_get_number(&s->options, "buffer-limit");
 	if (data->buffer == -1) {
-		paste_add(&s->buffers, buf, sb.st_size, limit);
+		paste_add(&s->buffers, pdata, psize, limit);
 		return (0);
 	}
-	if (paste_replace(&s->buffers, data->buffer, buf, sb.st_size) != 0) {
+	if (paste_replace(&s->buffers, data->buffer, pdata, psize) != 0) {
 		ctx->error(ctx, "no buffer %d", data->buffer);
-		xfree(buf);
-		return (-1);
+		goto error;
 	}
 
 	return (0);
+
+error:
+	if (pdata != NULL)
+		xfree(pdata);
+	fclose(f);
+	return (-1);
 }

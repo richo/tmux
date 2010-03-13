@@ -1,4 +1,4 @@
-/* $Id: input.c,v 1.101 2009/10/28 23:12:38 tcunha Exp $ */
+/* $Id: input.c,v 1.107 2010/02/08 18:32:34 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -230,7 +230,7 @@ input_init(struct window_pane *wp)
 	ictx->string_len = 0;
 	ictx->string_buf = NULL;
 
- 	memcpy(&ictx->cell, &grid_default_cell, sizeof ictx->cell);
+	memcpy(&ictx->cell, &grid_default_cell, sizeof ictx->cell);
 
 	memcpy(&ictx->saved_cell, &grid_default_cell, sizeof ictx->saved_cell);
 	ictx->saved_cx = 0;
@@ -256,16 +256,17 @@ input_parse(struct window_pane *wp)
 	struct input_ctx	*ictx = &wp->ictx;
 	u_char			 ch;
 
-	if (BUFFER_USED(wp->in) == ictx->was)
+	if (EVBUFFER_LENGTH(wp->event->input) == ictx->was)
 		return;
 	wp->window->flags |= WINDOW_ACTIVITY;
 
-	ictx->buf = BUFFER_OUT(wp->in);
-	ictx->len = BUFFER_USED(wp->in);
+	ictx->buf = EVBUFFER_DATA(wp->event->input);
+	ictx->len = EVBUFFER_LENGTH(wp->event->input);
 	ictx->off = 0;
 
 	ictx->wp = wp;
 
+	/* If there is a mode set, don't want to update the screen. */
 	if (wp->mode == NULL)
 		screen_write_start(&ictx->ctx, wp, &wp->base);
 	else
@@ -278,8 +279,8 @@ input_parse(struct window_pane *wp)
 
 	screen_write_stop(&ictx->ctx);
 
-	buffer_remove(wp->in, ictx->len);
-	ictx->was = BUFFER_USED(wp->in);
+	evbuffer_drain(wp->event->input, ictx->len);
+	ictx->was = EVBUFFER_LENGTH(wp->event->input);
 }
 
 void
@@ -296,7 +297,7 @@ input_state_first(u_char ch, struct input_ctx *ictx)
 	}
 
 #if 0
-  	if (INPUT_C1CONTROL(ch)) {
+	if (INPUT_C1CONTROL(ch)) {
 		ch -= 0x40;
 		if (ch == '[')
 			input_state(ictx, input_state_sequence_first);
@@ -590,7 +591,7 @@ input_handle_character(u_char ch, struct input_ctx *ictx)
 
 	if (ch > 0x7f && options_get_number(&wp->window->options, "utf8")) {
 		if (utf8_open(&ictx->utf8data, ch)) {
-			log_debug2("-- utf8 size %zu: %zu: %hhu (%c)", 
+			log_debug2("-- utf8 size %zu: %zu: %hhu (%c)",
 			    ictx->utf8data.size, ictx->off, ch, ch);
 			input_state(ictx, input_state_utf8);
 			return;
@@ -932,7 +933,8 @@ input_handle_sequence_cbt(struct input_ctx *ictx)
 void
 input_handle_sequence_da(struct input_ctx *ictx)
 {
-	uint16_t	n;
+	struct window_pane	*wp = ictx->wp;
+	uint16_t		 n;
 
 	if (ictx->private != '\0')
 		return;
@@ -943,8 +945,8 @@ input_handle_sequence_da(struct input_ctx *ictx)
 		return;
 	if (n != 0)
 		return;
-	
-	buffer_write(ictx->wp->out, "\033[?1;2c", (sizeof "\033[?1;2c") - 1);
+
+	bufferevent_write(wp->event, "\033[?1;2c", (sizeof "\033[?1;2c") - 1);
 }
 
 void
@@ -1146,6 +1148,7 @@ void
 input_handle_sequence_sm(struct input_ctx *ictx)
 {
 	struct window_pane	*wp = ictx->wp;
+	struct options		*oo = &wp->window->options;
 	struct screen		*s = &wp->base;
 	u_int			 sx, sy;
 	uint16_t		 n;
@@ -1162,7 +1165,7 @@ input_handle_sequence_sm(struct input_ctx *ictx)
 			log_debug("kcursor on");
 			break;
 		case 3:		/* DECCOLM */
-			screen_write_cursormove(&ictx->ctx, 0, 0);			
+			screen_write_cursormove(&ictx->ctx, 0, 0);
 			screen_write_clearscreen(&ictx->ctx);
 			break;
 		case 25:	/* TCEM */
@@ -1175,6 +1178,8 @@ input_handle_sequence_sm(struct input_ctx *ictx)
 			break;
 		case 1049:
 			if (wp->saved_grid != NULL)
+				break;
+			if (!options_get_number(oo, "alternate-screen"))
 				break;
 			sx = screen_size_x(s);
 			sy = screen_size_y(s);
@@ -1222,6 +1227,7 @@ void
 input_handle_sequence_rm(struct input_ctx *ictx)
 {
 	struct window_pane	*wp = ictx->wp;
+	struct options		*oo = &wp->window->options;
 	struct screen		*s = &wp->base;
 	u_int			 sx, sy;
 	uint16_t		 n;
@@ -1238,7 +1244,7 @@ input_handle_sequence_rm(struct input_ctx *ictx)
 			log_debug("kcursor off");
 			break;
 		case 3:		/* DECCOLM */
-			screen_write_cursormove(&ictx->ctx, 0, 0);			
+			screen_write_cursormove(&ictx->ctx, 0, 0);
 			screen_write_clearscreen(&ictx->ctx);
 			break;
 		case 25:	/* TCEM */
@@ -1252,10 +1258,12 @@ input_handle_sequence_rm(struct input_ctx *ictx)
 		case 1049:
 			if (wp->saved_grid == NULL)
 				break;
+			if (!options_get_number(oo, "alternate-screen"))
+				break;
 			sx = screen_size_x(s);
 			sy = screen_size_y(s);
 
-			/* 
+			/*
 			 * Exit alternative screen mode and restore the copied
 			 * grid.
 			 */
@@ -1282,7 +1290,7 @@ input_handle_sequence_rm(struct input_ctx *ictx)
 			 * Turn history back on (so resize can use it) and then
 			 * resize back to the current size.
 			 */
-  			wp->base.grid->flags |= GRID_HISTORY;
+			wp->base.grid->flags |= GRID_HISTORY;
 			if (sy > wp->saved_grid->sy)
 				screen_resize(s, sx, sy);
 
@@ -1314,9 +1322,10 @@ input_handle_sequence_rm(struct input_ctx *ictx)
 void
 input_handle_sequence_dsr(struct input_ctx *ictx)
 {
-	struct screen  *s = ictx->ctx.s;
-	uint16_t	n;
-	char		reply[32];
+	struct window_pane	*wp = ictx->wp;
+	struct screen		*s = ictx->ctx.s;
+	uint16_t		 n;
+	char			reply[32];
 
 	if (ARRAY_LENGTH(&ictx->args) > 1)
 		return;
@@ -1329,7 +1338,7 @@ input_handle_sequence_dsr(struct input_ctx *ictx)
 			xsnprintf(reply, sizeof reply,
 			    "\033[%u;%uR", s->cy + 1, s->cx + 1);
 			log_debug("cursor request, reply: %s", reply);
-			buffer_write(ictx->wp->out, reply, strlen(reply));
+			bufferevent_write(wp->event, reply, strlen(reply));
 			break;
 		}
 	}
@@ -1369,7 +1378,7 @@ input_handle_sequence_sgr(struct input_ctx *ictx)
 	if (ARRAY_LENGTH(&ictx->args) == 0) {
 		attr = gc->attr;
 		memcpy(gc, &grid_default_cell, sizeof *gc);
- 		gc->attr |= (attr & GRID_ATTR_CHARSET);
+		gc->attr |= (attr & GRID_ATTR_CHARSET);
 		return;
 	}
 
@@ -1478,8 +1487,8 @@ input_handle_sequence_sgr(struct input_ctx *ictx)
 		case 95:
 		case 96:
 		case 97:
-			gc->flags |= GRID_FLAG_FG256;
-			gc->fg = m - 82;
+			gc->flags &= ~GRID_FLAG_FG256;
+			gc->fg = m;
 			break;
 		case 100:
 		case 101:
@@ -1489,8 +1498,8 @@ input_handle_sequence_sgr(struct input_ctx *ictx)
 		case 105:
 		case 106:
 		case 107:
-			gc->flags |= GRID_FLAG_BG256;
-			gc->bg = m - 92;
+			gc->flags &= ~GRID_FLAG_BG256;
+			gc->bg = m;
 			break;
 		}
 	}
