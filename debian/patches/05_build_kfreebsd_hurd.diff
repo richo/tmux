@@ -1,7 +1,9 @@
 # Enable kFreeBSD and Hurd specific configure script
---- a/configure
-+++ b/configure
-@@ -88,7 +88,7 @@
+Index: tmux/configure
+===================================================================
+--- tmux.orig/configure	2010-03-13 23:25:36.158219226 +0100
++++ tmux/configure	2010-03-13 23:25:52.726716354 +0100
+@@ -89,7 +89,7 @@
  EOF
  	;;
  # ------------------------------------------------------------------------------
@@ -10,9 +12,11 @@
  	cat <<EOF >>$CONFIG_H
  #define HAVE_ASPRINTF
  #define HAVE_BZERO
---- a/tmux.h
-+++ b/tmux.h
-@@ -399,6 +399,10 @@
+Index: tmux/tmux.h
+===================================================================
+--- tmux.orig/tmux.h	2010-03-13 23:25:36.158219226 +0100
++++ tmux/tmux.h	2010-03-13 23:25:52.726716354 +0100
+@@ -388,6 +388,10 @@
  	char		argv[COMMAND_LENGTH];
  };
  
@@ -23,8 +27,8 @@
  struct msg_identify_data {
  	char		cwd[MAXPATHLEN];
  
-@@ -1057,6 +1061,10 @@
- 	u_char	y;
+@@ -1065,6 +1069,10 @@
+ 	time_t	msg_time;
  };
  
 +#ifndef IOV_MAX

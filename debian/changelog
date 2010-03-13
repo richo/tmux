@@ -1,9 +1,13 @@
-tmux (1.1-2) unstable; urgency=low
+tmux (1.2-1~1.gbp342953) UNRELEASED; urgency=low
 
+  ** SNAPSHOT build @342953ad3f5c167504c63399cc2c269a24fba033 **
+
+  * add 2010 to debian/copyright.
+  * Imported Upstream version 1.2
   * Bump to standard version 3.8.4 (no changes needed), adopted new source
     format and switched parts of debian/rules to dh_auto_*.
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Fri, 05 Feb 2010 14:20:11 +0100
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sat, 13 Mar 2010 23:43:16 +0100
 
 tmux (1.1-1) unstable; urgency=low
 

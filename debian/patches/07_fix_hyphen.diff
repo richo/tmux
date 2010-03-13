@@ -1,9 +1,11 @@
 # fixes lintian's complains about missing hyphens.
---- a/tmux.1
-+++ b/tmux.1
-@@ -334,13 +334,13 @@
- .Pp
- Examples include:
+Index: tmux/tmux.1
+===================================================================
+--- tmux.orig/tmux.1	2010-03-13 22:44:29.346716913 +0100
++++ tmux/tmux.1	2010-03-13 23:29:37.826216713 +0100
+@@ -385,13 +385,13 @@
+ .Nm
+ commands include:
  .Bd -literal -offset indent
 -refresh-client -t/dev/ttyp2
 +refresh-client \-t/dev/ttyp2
@@ -17,9 +19,9 @@
 -new-window ; split-window -d
 +new-window ; split-window \-d
  .Ed
- .Sh CLIENTS AND SESSIONS
- The following commands are available:
-@@ -670,7 +670,7 @@
+ .Pp
+ Or from
+@@ -807,7 +807,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -28,7 +30,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -687,7 +687,7 @@
+@@ -824,7 +824,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -37,7 +39,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -704,7 +704,7 @@
+@@ -841,7 +841,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -46,7 +48,7 @@
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
-@@ -870,7 +870,7 @@
+@@ -1033,7 +1033,7 @@
  option only opens a new pipe if no previous pipe exists, allowing a pipe to
  be toggled with a single key, for example:
  .Bd -literal -offset indent
@@ -55,7 +57,7 @@
  .Ed
  .It Xo Ic previous-window
  .Op Fl a
-@@ -1493,7 +1493,7 @@
+@@ -1728,7 +1728,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -64,7 +66,7 @@
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -1673,7 +1673,7 @@
+@@ -1909,7 +1909,7 @@
  .Ic rename-window .
  It may be switched off globally with:
  .Bd -literal -offset indent
@@ -73,7 +75,7 @@
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2189,29 +2189,29 @@
+@@ -2478,29 +2478,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent

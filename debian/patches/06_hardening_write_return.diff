@@ -1,7 +1,9 @@
 # Harden write and chdir because of ignored return value
---- a/tty.c
-+++ b/tty.c
-@@ -283,7 +283,8 @@
+Index: tmux/tty.c
+===================================================================
+--- tmux.orig/tty.c	2010-03-13 22:44:29.000000000 +0100
++++ tmux/tty.c	2010-03-13 23:28:05.038724665 +0100
+@@ -300,7 +300,8 @@
  void
  tty_raw(struct tty *tty, const char *s)
  {
@@ -11,8 +13,8 @@
  }
  
  void
-@@ -316,7 +317,8 @@
- 	buffer_write(tty->out, s, strlen(s));
+@@ -333,7 +334,8 @@
+ 	bufferevent_write(tty->event, s, strlen(s));
  
  	if (tty->log_fd != -1)
 -		write(tty->log_fd, s, strlen(s));
@@ -21,7 +23,7 @@
  }
  
  void
-@@ -342,7 +344,8 @@
+@@ -359,7 +361,8 @@
  	}
  
  	if (tty->log_fd != -1)
@@ -31,19 +33,11 @@
  }
  
  void
-@@ -355,7 +358,8 @@
- 			break;
- 		buffer_write8(tty->out, gu->data[i]);
- 		if (tty->log_fd != -1)
--			write(tty->log_fd, &gu->data[i], 1);
-+			if (write(tty->log_fd, &gu->data[i], 1) == -1)
-+				fatal("write failed");
- 	}
- 
- 	tty->cx += gu->width;
---- a/window.c
-+++ b/window.c
-@@ -516,7 +516,9 @@
+Index: tmux/window.c
+===================================================================
+--- tmux.orig/window.c	2010-03-13 22:44:29.000000000 +0100
++++ tmux/window.c	2010-03-13 23:28:05.038724665 +0100
+@@ -518,7 +518,9 @@
  		return (-1);
  	case 0:
  		if (chdir(wp->cwd) != 0)
