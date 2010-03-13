@@ -1,4 +1,4 @@
-/* $Id: cmd-list-keys.c,v 1.20 2009/07/28 23:19:06 tcunha Exp $ */
+/* $Id: cmd-list-keys.c,v 1.24 2009/12/04 22:14:47 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -33,7 +33,7 @@ int	cmd_list_keys_table(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_list_keys_entry = {
 	"list-keys", "lsk",
 	"[-t key-table]",
-	0, 0,
+	0, "",
 	cmd_target_init,
 	cmd_target_parse,
 	cmd_list_keys_exec,
@@ -47,7 +47,8 @@ cmd_list_keys_exec(struct cmd *self, struct cmd_ctx *ctx)
 	struct cmd_target_data	*data = self->data;
 	struct key_binding	*bd;
 	const char		*key;
-	char			 tmp[BUFSIZ], keytmp[64];
+	char			 tmp[BUFSIZ];
+	size_t			 used;
 	int			 width, keywidth;
 
 	if (data->target != NULL)
@@ -70,14 +71,17 @@ cmd_list_keys_exec(struct cmd *self, struct cmd_ctx *ctx)
 		key = key_string_lookup_key(bd->key & ~KEYC_PREFIX);
 		if (key == NULL)
 			continue;
+		used = xsnprintf(tmp, sizeof tmp, "%*s: ", width, key);
+		if (used >= sizeof tmp)
+			continue;
 
-		*tmp = '\0';
-		cmd_list_print(bd->cmdlist, tmp, sizeof tmp);
 		if (!(bd->key & KEYC_PREFIX)) {
-			xsnprintf(keytmp, sizeof keytmp, "[%s]", key);
-			key = keytmp;
+			used = strlcat(tmp, "(no prefix) ", sizeof tmp);
+			if (used >= sizeof tmp)
+				continue;
 		}
-		ctx->print(ctx, "%*s: %s", width, key, tmp);
+		cmd_list_print(bd->cmdlist, tmp + used, (sizeof tmp) - used);
+		ctx->print(ctx, "%s", tmp);
 	}
 
 	return (0);

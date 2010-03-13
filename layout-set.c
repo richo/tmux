@@ -1,4 +1,4 @@
-/* $Id: layout-set.c,v 1.3 2009/07/28 23:04:29 tcunha Exp $ */
+/* $Id: layout-set.c,v 1.5 2010/02/05 01:29:04 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -244,6 +244,8 @@ layout_set_main_h(struct window *w)
 
 	/* How many rows and columns will be needed? */
 	columns = w->sx / (PANE_MINIMUM + 1);	/* maximum columns */
+	if (columns == 0)
+		columns = 1;
 	rows = 1 + (n - 1) / columns;
 	columns = 1 + (n - 1) / rows;
 	width = w->sx / columns;
@@ -295,7 +297,7 @@ layout_set_main_h(struct window *w)
 			continue;
 		}
 
- 		/* Add in the columns. */
+		/* Add in the columns. */
 		layout_make_node(lcrow, LAYOUT_LEFTRIGHT);
 		for (i = 0; i < columns; i++) {
 			/* Create and add a pane cell. */
@@ -312,11 +314,11 @@ layout_set_main_h(struct window *w)
 		/* Adjust the row to fit the full width if necessary. */
 		if (i == columns)
 			i--;
- 		used = ((i + 1) * width) - 1;
- 		if (w->sx <= used)
- 			continue;
- 		lcchild = TAILQ_LAST(&lcrow->cells, layout_cells);
- 		layout_resize_adjust(lcchild, LAYOUT_LEFTRIGHT, w->sx - used);
+		used = ((i + 1) * width) - 1;
+		if (w->sx <= used)
+			continue;
+		lcchild = TAILQ_LAST(&lcrow->cells, layout_cells);
+		layout_resize_adjust(lcchild, LAYOUT_LEFTRIGHT, w->sx - used);
 	}
 
 	/* Adjust the last row height to fit if necessary. */
@@ -353,6 +355,8 @@ layout_set_main_v(struct window *w)
 
 	/* How many rows and columns will be needed? */
 	rows = w->sy / (PANE_MINIMUM + 1);	/* maximum rows */
+	if (rows == 0)
+		rows = 1;
 	columns = 1 + (n - 1) / rows;
 	rows = 1 + (n - 1) / columns;
 	height = w->sy / rows;
@@ -422,10 +426,10 @@ layout_set_main_v(struct window *w)
 		if (i == rows)
 			i--;
 		used = ((i + 1) * height) - 1;
- 		if (w->sy <= used)
- 			continue;
- 		lcchild = TAILQ_LAST(&lccolumn->cells, layout_cells);
- 		layout_resize_adjust(lcchild, LAYOUT_TOPBOTTOM, w->sy - used);
+		if (w->sy <= used)
+			continue;
+		lcchild = TAILQ_LAST(&lccolumn->cells, layout_cells);
+		layout_resize_adjust(lcchild, LAYOUT_TOPBOTTOM, w->sy - used);
 	}
 
 	/* Adjust the last column width to fit if necessary. */

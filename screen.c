@@ -1,4 +1,4 @@
-/* $Id: screen.c,v 1.96 2009/08/09 17:28:23 tcunha Exp $ */
+/* $Id: screen.c,v 1.99 2010/02/08 18:13:17 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -50,7 +50,7 @@ screen_reinit(struct screen *s)
 	s->rlower = screen_size_y(s) - 1;
 
 	s->mode = MODE_CURSOR;
-	
+
 	screen_reset_tabs(s);
 
 	grid_clear_lines(s->grid, s->grid->hsize, s->grid->sy);
@@ -151,12 +151,12 @@ screen_resize_y(struct screen *s, u_int sy)
 		fatalx("zero size");
 	oldy = screen_size_y(s);
 
-	/* 
+	/*
 	 * When resizing:
 	 *
 	 * If the height is decreasing, delete lines from the bottom until
 	 * hitting the cursor, then push lines from the top into the history.
-	 * 
+	 *
 	 * When increasing, pull as many lines as possible from the history to
 	 * the top, then fill the remaining with blanks at the bottom.
 	 */
@@ -190,7 +190,7 @@ screen_resize_y(struct screen *s, u_int sy)
 			grid_view_delete_lines(gd, 0, available);
 		}
 		s->cy -= needed;
- 	}
+	}
 
 	/* Resize line arrays. */
 	gd->linedata = xrealloc(
@@ -227,21 +227,17 @@ screen_resize_y(struct screen *s, u_int sy)
 
 /* Set selection. */
 void
-screen_set_selection(struct screen *s,
-    u_int sx, u_int sy, u_int ex, u_int ey, struct grid_cell *gc)
+screen_set_selection(struct screen *s, u_int sx, u_int sy,
+    u_int ex, u_int ey, u_int rectflag, struct grid_cell *gc)
 {
 	struct screen_sel	*sel = &s->sel;
 
 	memcpy(&sel->cell, gc, sizeof sel->cell);
-
 	sel->flag = 1;
-	if (ey < sy || (sy == ey && ex < sx)) {
-		sel->sx = ex; sel->sy = ey;
-		sel->ex = sx; sel->ey = sy;
-	} else {
-		sel->sx = sx; sel->sy = sy;
-		sel->ex = ex; sel->ey = ey;
-	}
+	sel->rectflag = rectflag;
+
+	sel->sx = sx; sel->sy = sy;
+	sel->ex = ex; sel->ey = ey;
 }
 
 /* Clear selection. */
@@ -259,16 +255,81 @@ screen_check_selection(struct screen *s, u_int px, u_int py)
 {
 	struct screen_sel	*sel = &s->sel;
 
-	if (!sel->flag || py < sel->sy || py > sel->ey)
+	if (!sel->flag)
 		return (0);
 
-	if (py == sel->sy && py == sel->ey) {
-		if (px < sel->sx || px > sel->ex)
-			return (0);
-		return (1);
+	if (sel->rectflag) {
+		if (sel->sy < sel->ey) {
+			/* start line < end line -- downward selection. */
+			if (py < sel->sy || py > sel->ey)
+				return (0);
+		} else if (sel->sy > sel->ey) {
+			/* start line > end line -- upward selection. */
+			if (py > sel->sy || py < sel->ey)
+				return (0);
+		} else {
+			/* starting line == ending line. */
+			if (py != sel->sy)
+				return (0);
+		}
+
+		/*
+		 * Need to include the selection start row, but not the cursor
+		 * row, which means the selection changes depending on which
+		 * one is on the left.
+		 */
+		if (sel->ex < sel->sx) {
+			/* Cursor (ex) is on the left. */
+			if (px <= sel->ex)
+				return (0);
+
+			if (px > sel->sx)
+				return (0);
+		} else {
+			/* Selection start (sx) is on the left. */
+			if (px < sel->sx)
+				return (0);
+
+			if (px >= sel->ex)
+				return (0);
+		}
+	} else {
+		/*
+		 * Like emacs, keep the top-left-most character, and drop the
+		 * bottom-right-most, regardless of copy direction.
+		 */
+		if (sel->sy < sel->ey) {
+			/* starting line < ending line -- downward selection. */
+			if (py < sel->sy || py > sel->ey)
+				return (0);
+
+			if ((py == sel->sy && px < sel->sx)
+			    || (py == sel->ey && px > sel->ex))
+				return (0);
+		} else if (sel->sy > sel->ey) {
+			/* starting line > ending line -- upward selection. */
+			if (py > sel->sy || py < sel->ey)
+				return (0);
+
+			if ((py == sel->sy && px >= sel->sx)
+			    || (py == sel->ey && px < sel->ex))
+				return (0);
+		} else {
+			/* starting line == ending line. */
+			if (py != sel->sy)
+				return (0);
+
+			if (sel->ex < sel->sx) {
+				/* cursor (ex) is on the left */
+				if (px > sel->sx || px < sel->ex)
+					return (0);
+			} else {
+				/* selection start (sx) is on the left */
+				if (px < sel->sx || px > sel->ex)
+					return (0);
+			}
+		}
 	}
 
-	if ((py == sel->sy && px < sel->sx) || (py == sel->ey && px > sel->ex))
-		return (0);
 	return (1);
 }

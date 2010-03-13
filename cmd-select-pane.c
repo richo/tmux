@@ -1,4 +1,4 @@
-/* $Id: cmd-select-pane.c,v 1.10 2009/07/30 20:45:20 tcunha Exp $ */
+/* $Id: cmd-select-pane.c,v 1.12 2010/01/05 23:52:37 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,7 @@ int	cmd_select_pane_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_select_pane_entry = {
 	"select-pane", "selectp",
 	CMD_TARGET_PANE_USAGE,
-	0, 0,
+	0, "",
 	cmd_target_init,
 	cmd_target_parse,
 	cmd_select_pane_exec,
@@ -53,6 +53,7 @@ cmd_select_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	}
 	window_set_active_pane(wl->window, wp);
 	server_status_window(wl->window);
+	server_redraw_window_borders(wl->window);
 
 	return (0);
 }

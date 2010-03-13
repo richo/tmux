@@ -1,4 +1,4 @@
-/* $Id: cmd-new-window.c,v 1.39 2009/10/11 23:38:16 tcunha Exp $ */
+/* $Id: cmd-new-window.c,v 1.43 2010/01/22 17:28:34 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -43,7 +43,7 @@ struct cmd_new_window_data {
 const struct cmd_entry cmd_new_window_entry = {
 	"new-window", "neww",
 	"[-dk] [-n window-name] [-t target-window] [command]",
-	0, 0,
+	0, "",
 	cmd_new_window_init,
 	cmd_new_window_parse,
 	cmd_new_window_exec,
@@ -51,6 +51,7 @@ const struct cmd_entry cmd_new_window_entry = {
 	cmd_new_window_print
 };
 
+/* ARGSUSED */
 void
 cmd_new_window_init(struct cmd *self, unused int arg)
 {
@@ -128,21 +129,19 @@ cmd_new_window_exec(struct cmd *self, struct cmd_ctx *ctx)
 	wl = NULL;
 	if (idx != -1)
 		wl = winlink_find_by_index(&s->windows, idx);
-	if (wl != NULL) {
-		if (data->flag_kill) {
-			/*
-			 * Can't use session_detach as it will destroy session
-			 * if this makes it empty.
-			 */
-			session_alert_cancel(s, wl);
-			winlink_stack_remove(&s->lastw, wl);
-			winlink_remove(&s->windows, wl);
+	if (wl != NULL && data->flag_kill) {
+		/*
+		 * Can't use session_detach as it will destroy session if this
+		 * makes it empty.
+		 */
+		session_alert_cancel(s, wl);
+		winlink_stack_remove(&s->lastw, wl);
+		winlink_remove(&s->windows, wl);
 
-			/* Force select/redraw if current. */
-			if (wl == s->curw) {
-				data->flag_detached = 0;
-				s->curw = NULL;
-			}
+		/* Force select/redraw if current. */
+		if (wl == s->curw) {
+			data->flag_detached = 0;
+			s->curw = NULL;
 		}
 	}
 
@@ -165,7 +164,7 @@ cmd_new_window_exec(struct cmd *self, struct cmd_ctx *ctx)
 	if (!data->flag_detached) {
 		session_select(s, wl->idx);
 		server_redraw_session_group(s);
-	} else	
+	} else
 		server_status_session_group(s);
 
 	return (0);

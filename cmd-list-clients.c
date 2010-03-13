@@ -1,4 +1,4 @@
-/* $Id: cmd-list-clients.c,v 1.18 2009/07/28 22:12:16 tcunha Exp $ */
+/* $Id: cmd-list-clients.c,v 1.20 2009/11/28 14:50:36 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -32,7 +32,7 @@ int	cmd_list_clients_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_list_clients_entry = {
 	"list-clients", "lsc",
 	"",
-	0, 0,
+	0, "",
 	NULL,
 	NULL,
 	cmd_list_clients_exec,
@@ -40,6 +40,7 @@ const struct cmd_entry cmd_list_clients_entry = {
 	NULL
 };
 
+/* ARGSUSED */
 int
 cmd_list_clients_exec(unused struct cmd *self, struct cmd_ctx *ctx)
 {

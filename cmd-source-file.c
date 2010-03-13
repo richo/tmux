@@ -1,4 +1,4 @@
-/* $Id: cmd-source-file.c,v 1.9 2009/09/22 14:06:40 tcunha Exp $ */
+/* $Id: cmd-source-file.c,v 1.13 2010/02/08 18:29:32 tcunha Exp $ */
 
 /*
  * Copyright (c) 2008 Tiago Cunha <me@tiagocunha.org>
@@ -37,7 +37,7 @@ struct cmd_source_file_data {
 const struct cmd_entry cmd_source_file_entry = {
 	"source-file", "source",
 	"path",
-	0, 0,
+	0, "",
 	cmd_source_file_init,
 	cmd_source_file_parse,
 	cmd_source_file_exec,
@@ -45,6 +45,7 @@ const struct cmd_entry cmd_source_file_entry = {
 	cmd_source_file_print
 };
 
+/* ARGSUSED */
 void
 cmd_source_file_init(struct cmd *self, unused int arg)
 {
@@ -88,12 +89,18 @@ int
 cmd_source_file_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct cmd_source_file_data	*data = self->data;
+	struct causelist		 causes;
 	char				*cause;
+	u_int				 i;
 
-	if (load_cfg(data->path, ctx, &cause) != 0) {
-		ctx->error(ctx, "%s", cause);
-		xfree(cause);
-		return (-1);
+	ARRAY_INIT(&causes);
+	if (load_cfg(data->path, ctx, &causes) != 0) {
+		for (i = 0; i < ARRAY_LENGTH(&causes); i++) {
+			cause = ARRAY_ITEM(&causes, i);
+			ctx->print(ctx, "%s", cause);
+			xfree(cause);
+		}
+		ARRAY_FREE(&causes);
 	}
 
 	return (0);

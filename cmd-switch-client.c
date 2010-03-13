@@ -1,4 +1,4 @@
-/* $Id: cmd-switch-client.c,v 1.17 2009/07/28 22:12:16 tcunha Exp $ */
+/* $Id: cmd-switch-client.c,v 1.19 2010/01/25 17:12:44 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -40,7 +40,7 @@ struct cmd_switch_client_data {
 const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
 	"[-c target-client] [-t target-session]",
-	0, 0,
+	0, "",
 	NULL,
 	cmd_switch_client_parse,
 	cmd_switch_client_exec,
@@ -61,10 +61,12 @@ cmd_switch_client_parse(struct cmd *self, int argc, char **argv, char **cause)
 	while ((opt = getopt(argc, argv, "c:t:")) != -1) {
 		switch (opt) {
 		case 'c':
-			data->name = xstrdup(optarg);
+			if (data->name == NULL)
+				data->name = xstrdup(optarg);
 			break;
 		case 't':
-			data->target = xstrdup(optarg);
+			if (data->target == NULL)
+				data->target = xstrdup(optarg);
 			break;
 		default:
 			goto usage;

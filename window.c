@@ -1,4 +1,4 @@
-/* $Id: window.c,v 1.117 2009/10/23 17:41:20 tcunha Exp $ */
+/* $Id: window.c,v 1.126 2010/02/08 18:10:07 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -53,6 +53,9 @@
 
 /* Global window list. */
 struct windows windows;
+
+void	window_pane_read_callback(struct bufferevent *, void *);
+void	window_pane_error_callback(struct bufferevent *, short, void *);
 
 RB_GENERATE(winlinks, winlink, entry, winlink_cmp);
 
@@ -144,6 +147,8 @@ winlink_remove(struct winlinks *wwl, struct winlink *wl)
 	struct window	*w = wl->window;
 
 	RB_REMOVE(winlinks, wwl, wl);
+	if (wl->status_text != NULL)
+		xfree(wl->status_text);
 	xfree(wl);
 
 	if (w->references == 0)
@@ -154,13 +159,13 @@ winlink_remove(struct winlinks *wwl, struct winlink *wl)
 }
 
 struct winlink *
-winlink_next(unused struct winlinks *wwl, struct winlink *wl)
+winlink_next(struct winlink *wl)
 {
 	return (RB_NEXT(winlinks, wwl, wl));
 }
 
 struct winlink *
-winlink_previous(unused struct winlinks *wwl, struct winlink *wl)
+winlink_previous(struct winlink *wl)
 {
 	return (RB_PREV(winlinks, wwl, wl));
 }
@@ -182,7 +187,7 @@ winlink_stack_remove(struct winlink_stack *stack, struct winlink *wl)
 
 	if (wl == NULL)
 		return;
-	
+
 	TAILQ_FOREACH(wl2, stack, sentry) {
 		if (wl2 == wl) {
 			TAILQ_REMOVE(stack, wl, sentry);
@@ -207,7 +212,7 @@ window_create1(u_int sx, u_int sy)
 	struct window	*w;
 	u_int		 i;
 
-	w = xmalloc(sizeof *w);
+	w = xcalloc(1, sizeof *w);
 	w->name = NULL;
 	w->flags = 0;
 
@@ -216,9 +221,11 @@ window_create1(u_int sx, u_int sy)
 
 	w->lastlayout = -1;
 	w->layout_root = NULL;
-	
+
 	w->sx = sx;
 	w->sy = sy;
+
+	queue_window_name(w);
 
 	options_init(&w->options, &global_w_options);
 
@@ -272,6 +279,8 @@ window_destroy(struct window *w)
 
 	if (w->layout_root != NULL)
 		layout_free(w);
+
+	evtimer_del(&w->name_timer);
 
 	options_free(&w->options);
 
@@ -410,22 +419,21 @@ window_pane_create(struct window *w, u_int sx, u_int sy, u_int hlimit)
 	wp->cwd = NULL;
 
 	wp->fd = -1;
-	wp->in = buffer_create(BUFSIZ);
-	wp->out = buffer_create(BUFSIZ);
+	wp->event = NULL;
 
 	wp->mode = NULL;
 
 	wp->layout_cell = NULL;
 
 	wp->xoff = 0;
- 	wp->yoff = 0;
+	wp->yoff = 0;
 
 	wp->sx = sx;
 	wp->sy = sy;
 
 	wp->pipe_fd = -1;
-	wp->pipe_buf = NULL;
 	wp->pipe_off = 0;
+	wp->pipe_event = NULL;
 
 	wp->saved_grid = NULL;
 
@@ -440,8 +448,10 @@ window_pane_create(struct window *w, u_int sx, u_int sy, u_int hlimit)
 void
 window_pane_destroy(struct window_pane *wp)
 {
-	if (wp->fd != -1)
+	if (wp->fd != -1) {
 		close(wp->fd);
+		bufferevent_free(wp->event);
+	}
 
 	input_free(wp);
 
@@ -451,12 +461,9 @@ window_pane_destroy(struct window_pane *wp)
 		grid_destroy(wp->saved_grid);
 
 	if (wp->pipe_fd != -1) {
-		buffer_destroy(wp->pipe_buf);
 		close(wp->pipe_fd);
+		bufferevent_free(wp->pipe_event);
 	}
-
-	buffer_destroy(wp->in);
-	buffer_destroy(wp->out);
 
 	if (wp->cwd != NULL)
 		xfree(wp->cwd);
@@ -477,12 +484,13 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 	ARRAY_DECL(, char *)	 varlist;
 	struct environ_entry	*envent;
 	const char		*ptr;
-	struct timeval	 	 tv;
 	struct termios		 tio2;
 	u_int		 	 i;
 
-	if (wp->fd != -1)
+	if (wp->fd != -1) {
 		close(wp->fd);
+		bufferevent_free(wp->event);
+	}
 	if (cmd != NULL) {
 		if (wp->cmd != NULL)
 			xfree(wp->cmd);
@@ -503,13 +511,7 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 	ws.ws_col = screen_size_x(&wp->base);
 	ws.ws_row = screen_size_y(&wp->base);
 
-	if (gettimeofday(&wp->window->name_timer, NULL) != 0)
-		fatal("gettimeofday failed");
-	tv.tv_sec = 0;
-	tv.tv_usec = NAME_INTERVAL * 1000L;
-	timeradd(&wp->window->name_timer, &tv, &wp->window->name_timer);
-
- 	switch (wp->pid = forkpty(&wp->fd, wp->tty, NULL, &ws)) {
+	switch (wp->pid = forkpty(&wp->fd, wp->tty, NULL, &ws)) {
 	case -1:
 		wp->fd = -1;
 		xasprintf(cause, "%s: %s", cmd, strerror(errno));
@@ -541,7 +543,7 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 				setenv(envent->name, envent->value, 1);
 		}
 
-		sigreset();
+		server_signal_clear();
 		log_close();
 
 		if (*wp->cmd != '\0') {
@@ -571,8 +573,30 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 		fatal("fcntl failed");
 	if (fcntl(wp->fd, F_SETFD, FD_CLOEXEC) == -1)
 		fatal("fcntl failed");
+	wp->event = bufferevent_new(wp->fd,
+	    window_pane_read_callback, NULL, window_pane_error_callback, wp);
+	bufferevent_enable(wp->event, EV_READ|EV_WRITE);
 
 	return (0);
+}
+
+/* ARGSUSED */
+void
+window_pane_read_callback(unused struct bufferevent *bufev, void *data)
+{
+	struct window_pane *wp = data;
+
+	window_pane_parse(wp);
+}
+
+/* ARGSUSED */
+void
+window_pane_error_callback(
+    unused struct bufferevent *bufev, unused short what, void *data)
+{
+	struct window_pane *wp = data;
+
+	server_destroy_pane(wp);
 }
 
 void
@@ -637,18 +661,18 @@ window_pane_reset_mode(struct window_pane *wp)
 void
 window_pane_parse(struct window_pane *wp)
 {
+	char   *data;
 	size_t	new_size;
 
-	if (wp->mode != NULL)
-		return;
+	new_size = EVBUFFER_LENGTH(wp->event->input) - wp->pipe_off;
+	if (wp->pipe_fd != -1 && new_size > 0) {
+		data = EVBUFFER_DATA(wp->event->input);
+		bufferevent_write(wp->pipe_event, data, new_size);
+	}
 
-	new_size = BUFFER_USED(wp->in) - wp->pipe_off;
-	if (wp->pipe_fd != -1 && new_size > 0)
-		buffer_write(wp->pipe_buf, BUFFER_OUT(wp->in), new_size);
-	
 	input_parse(wp);
 
-	wp->pipe_off = BUFFER_USED(wp->in);
+	wp->pipe_off = EVBUFFER_LENGTH(wp->event->input);
 }
 
 void

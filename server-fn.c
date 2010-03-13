@@ -1,4 +1,4 @@
-/* $Id: server-fn.c,v 1.94 2009/10/12 00:37:41 tcunha Exp $ */
+/* $Id: server-fn.c,v 1.102 2010/01/25 17:13:43 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -23,6 +23,8 @@
 #include <unistd.h>
 
 #include "tmux.h"
+
+void	server_callback_identify(int, short, void *);
 
 void
 server_fill_environ(struct session *s, struct environ *env)
@@ -59,6 +61,7 @@ server_write_client(
 		return;
 	log_debug("writing %d to client %d", type, c->ibuf.fd);
 	imsg_compose(ibuf, type, PROTOCOL_VERSION, -1, -1, (void *) buf, len);
+	server_update_event(c);
 }
 
 void
@@ -162,6 +165,21 @@ server_redraw_window(struct window *w)
 }
 
 void
+server_redraw_window_borders(struct window *w)
+{
+	struct client	*c;
+	u_int		 i;
+
+	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
+		c = ARRAY_ITEM(&clients, i);
+		if (c == NULL || c->session == NULL)
+			continue;
+		if (c->session->curw->window == w)
+			c->flags |= CLIENT_BORDERS;
+	}
+}
+
+void
 server_status_window(struct window *w)
 {
 	struct session	*s;
@@ -205,7 +223,7 @@ server_lock_session(struct session *s)
 		if (c == NULL || c->session == NULL || c->session != s)
 			continue;
 		server_lock_client(c);
-	}	
+	}
 }
 
 void
@@ -222,7 +240,7 @@ server_lock_client(struct client *c)
 	cmdlen = strlcpy(lockdata.cmd, cmd, sizeof lockdata.cmd);
 	if (cmdlen >= sizeof lockdata.cmd)
 		return;
-      
+
 	tty_stop_tty(&c->tty);
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_SMCUP));
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_CLEAR));
@@ -237,19 +255,17 @@ server_kill_window(struct window *w)
 	struct session	*s;
 	struct winlink	*wl;
 	u_int		 i;
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
 		s = ARRAY_ITEM(&sessions, i);
 		if (s == NULL || !session_has(s, w))
 			continue;
-		if ((wl = winlink_find_by_window(&s->windows, w)) == NULL)
-			continue;
-		
-		if (session_detach(s, wl))
-			server_destroy_session_group(s);
-		else {
-			server_redraw_session(s);
-			server_status_session_group(s);
+		while ((wl = winlink_find_by_window(&s->windows, w)) != NULL) {
+			if (session_detach(s, wl)) {
+				server_destroy_session_group(s);
+				break;
+			} else
+				server_redraw_session_group(s);
 		}
 	}
 }
@@ -314,6 +330,27 @@ server_unlink_window(struct session *s, struct winlink *wl)
 }
 
 void
+server_destroy_pane(struct window_pane *wp)
+{
+	struct window	*w = wp->window;
+
+	close(wp->fd);
+	bufferevent_free(wp->event);
+	wp->fd = -1;
+
+	if (options_get_number(&w->options, "remain-on-exit"))
+		return;
+
+	layout_close_pane(wp);
+	window_remove_pane(w, wp);
+
+	if (TAILQ_EMPTY(&w->panes))
+		server_kill_window(w);
+	else
+		server_redraw_window(w);
+}
+
+void
 server_destroy_session_group(struct session *s)
 {
 	struct session_group	*sg;
@@ -333,7 +370,7 @@ server_destroy_session(struct session *s)
 {
 	struct client	*c;
 	u_int		 i;
-	
+
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
 		c = ARRAY_ITEM(&clients, i);
 		if (c == NULL || c->session != s)
@@ -353,9 +390,9 @@ server_set_identify(struct client *c)
 	tv.tv_sec = delay / 1000;
 	tv.tv_usec = (delay % 1000) * 1000L;
 
-	if (gettimeofday(&c->identify_timer, NULL) != 0)
-		fatal("gettimeofday failed");
-	timeradd(&c->identify_timer, &tv, &c->identify_timer);
+	evtimer_del(&c->identify_timer);
+	evtimer_set(&c->identify_timer, server_callback_identify, c);
+	evtimer_add(&c->identify_timer, &tv);
 
 	c->flags |= CLIENT_IDENTIFY;
 	c->tty.flags |= (TTY_FREEZE|TTY_NOCURSOR);
@@ -370,4 +407,28 @@ server_clear_identify(struct client *c)
 		c->tty.flags &= ~(TTY_FREEZE|TTY_NOCURSOR);
 		server_redraw_client(c);
 	}
+}
+
+/* ARGSUSED */
+void
+server_callback_identify(unused int fd, unused short events, void *data)
+{
+	struct client	*c = data;
+
+	server_clear_identify(c);
+}
+
+void
+server_update_event(struct client *c)
+{
+	short	events;
+
+	events = 0;
+	if (!(c->flags & CLIENT_BAD))
+		events |= EV_READ;
+	if (c->ibuf.w.queued > 0)
+		events |= EV_WRITE;
+	event_del(&c->event);
+	event_set(&c->event, c->ibuf.fd, events, server_client_callback, c);
+	event_add(&c->event, NULL);
 }

@@ -1,4 +1,4 @@
-/* $Id: server-client.c,v 1.12 2009/11/04 22:46:25 tcunha Exp $ */
+/* $Id: server-client.c,v 1.31 2010/02/08 18:27:34 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 
+#include <event.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
@@ -25,21 +26,21 @@
 
 #include "tmux.h"
 
-void	server_client_handle_data(struct client *);
+void	server_client_handle_key(int, struct mouse_event *, void *);
+void	server_client_repeat_timer(int, short, void *);
 void	server_client_check_redraw(struct client *);
 void	server_client_set_title(struct client *);
-void	server_client_check_timers(struct client *);
+void	server_client_reset_state(struct client *);
 
 int	server_client_msg_dispatch(struct client *);
 void	server_client_msg_command(struct client *, struct msg_command_data *);
 void	server_client_msg_identify(
-    	    struct client *, struct msg_identify_data *, int);
+	    struct client *, struct msg_identify_data *, int);
 void	server_client_msg_shell(struct client *);
 
 void printflike2 server_client_msg_error(struct cmd_ctx *, const char *, ...);
 void printflike2 server_client_msg_print(struct cmd_ctx *, const char *, ...);
 void printflike2 server_client_msg_info(struct cmd_ctx *, const char *, ...);
-
 
 /* Create a new client. */
 void
@@ -59,7 +60,8 @@ server_client_create(int fd)
 	c = xcalloc(1, sizeof *c);
 	c->references = 0;
 	imsg_init(&c->ibuf, fd);
-	
+	server_update_event(c);
+
 	if (gettimeofday(&c->creation_time, NULL) != 0)
 		fatal("gettimeofday failed");
 	memcpy(&c->activity_time, &c->creation_time, sizeof c->activity_time);
@@ -77,10 +79,13 @@ server_client_create(int fd)
 	job_tree_init(&c->status_jobs);
 
 	c->message_string = NULL;
+	ARRAY_INIT(&c->message_log);
 
 	c->prompt_string = NULL;
 	c->prompt_buffer = NULL;
 	c->prompt_index = 0;
+
+	evtimer_set(&c->repeat_timer, server_client_repeat_timer, c);
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
 		if (ARRAY_ITEM(&clients, i) == NULL) {
@@ -96,7 +101,8 @@ server_client_create(int fd)
 void
 server_client_lost(struct client *c)
 {
-	u_int	i;
+	struct message_entry	*msg;
+	u_int			 i;
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
 		if (ARRAY_ITEM(&clients, i) == c)
@@ -117,8 +123,18 @@ server_client_lost(struct client *c)
 	if (c->title != NULL)
 		xfree(c->title);
 
+	evtimer_del(&c->repeat_timer);
+
+	evtimer_del(&c->identify_timer);
+
 	if (c->message_string != NULL)
 		xfree(c->message_string);
+	evtimer_del(&c->message_timer);
+	for (i = 0; i < ARRAY_LENGTH(&c->message_log); i++) {
+		msg = &ARRAY_ITEM(&c->message_log, i);
+		xfree(msg->msg);
+	}
+	ARRAY_FREE(&c->message_log);
 
 	if (c->prompt_string != NULL)
 		xfree(c->prompt_string);
@@ -133,6 +149,7 @@ server_client_lost(struct client *c)
 
 	close(c->ibuf.fd);
 	imsg_clear(&c->ibuf);
+	event_del(&c->event);
 
 	for (i = 0; i < ARRAY_LENGTH(&dead_clients); i++) {
 		if (ARRAY_ITEM(&dead_clients, i) == NULL) {
@@ -145,41 +162,12 @@ server_client_lost(struct client *c)
 	c->flags |= CLIENT_DEAD;
 
 	recalculate_sizes();
-}
-
-/* Register clients for poll. */
-void
-server_client_prepare(void)
-{
-	struct client	*c;
-	u_int		 i;
-	int		 events;
-
-	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
-		if ((c = ARRAY_ITEM(&clients, i)) == NULL)
-			continue;
-
-		events = 0;
-		if (!(c->flags & CLIENT_BAD))
-			events |= POLLIN;
-		if (c->ibuf.w.queued > 0)
-			events |= POLLOUT;
-		server_poll_add(c->ibuf.fd, events, server_client_callback, c);
-
-		if (c->tty.fd == -1)
-			continue;
-		if (c->flags & CLIENT_SUSPENDED || c->session == NULL)
-			continue;
-		events = POLLIN;
-		if (BUFFER_USED(c->tty.out) > 0)
-			events |= POLLOUT;
-		server_poll_add(c->tty.fd, events, server_client_callback, c);
-	}
+	server_update_socket();
 }
 
 /* Process a single client event. */
 void
-server_client_callback(int fd, int events, void *data)
+server_client_callback(int fd, short events, void *data)
 {
 	struct client	*c = data;
 
@@ -187,10 +175,7 @@ server_client_callback(int fd, int events, void *data)
 		return;
 
 	if (fd == c->ibuf.fd) {
-		if (events & (POLLERR|POLLNVAL|POLLHUP))
-			goto client_lost;
-
-		if (events & POLLOUT && msgbuf_write(&c->ibuf.w) < 0)
+		if (events & EV_WRITE && msgbuf_write(&c->ibuf.w) < 0)
 			goto client_lost;
 
 		if (c->flags & CLIENT_BAD) {
@@ -199,22 +184,187 @@ server_client_callback(int fd, int events, void *data)
 			return;
 		}
 
-		if (events & POLLIN && server_client_msg_dispatch(c) != 0)
+		if (events & EV_READ && server_client_msg_dispatch(c) != 0)
 			goto client_lost;
 	}
 
-	if (c->tty.fd != -1 && fd == c->tty.fd) {
-		if (c->flags & CLIENT_SUSPENDED || c->session == NULL)
-			return;
-
-		if (buffer_poll(fd, events, c->tty.in, c->tty.out) != 0)
-			goto client_lost;
-	}
-
+	server_update_event(c);
 	return;
 
 client_lost:
 	server_client_lost(c);
+}
+
+/* Handle client status timer. */
+void
+server_client_status_timer(void)
+{
+	struct client	*c;
+	struct session	*s;
+	struct job	*job;
+	struct timeval	 tv;
+	u_int		 i;
+	int		 interval;
+	time_t		 difference;
+
+	if (gettimeofday(&tv, NULL) != 0)
+		fatal("gettimeofday failed");
+
+	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
+		c = ARRAY_ITEM(&clients, i);
+		if (c == NULL || c->session == NULL)
+			continue;
+		if (c->message_string != NULL || c->prompt_string != NULL) {
+			/*
+			 * Don't need timed redraw for messages/prompts so bail
+			 * now. The status timer isn't reset when they are
+			 * redrawn anyway.
+			 */
+			continue;
+		}
+		s = c->session;
+
+		if (!options_get_number(&s->options, "status"))
+			continue;
+		interval = options_get_number(&s->options, "status-interval");
+
+		difference = tv.tv_sec - c->status_timer.tv_sec;
+		if (difference >= interval) {
+			RB_FOREACH(job, jobs, &c->status_jobs)
+				job_run(job);
+			c->flags |= CLIENT_STATUS;
+		}
+	}
+}
+
+/* Handle data key input from client. */
+void
+server_client_handle_key(int key, struct mouse_event *mouse, void *data)
+{
+	struct client		*c = data;
+	struct session		*s;
+	struct window		*w;
+	struct window_pane	*wp;
+	struct options		*oo;
+	struct timeval		 tv;
+	struct key_binding	*bd;
+	struct keylist		*keylist;
+	int		      	 xtimeout, isprefix;
+	u_int			 i;
+
+	/* Check the client is good to accept input. */
+	if ((c->flags & (CLIENT_DEAD|CLIENT_SUSPENDED)) != 0)
+		return;
+	if (c->session == NULL)
+		return;
+	s = c->session;
+
+	/* Update the activity timer. */
+	if (gettimeofday(&c->activity_time, NULL) != 0)
+		fatal("gettimeofday failed");
+	memcpy(&s->activity_time, &c->activity_time, sizeof s->activity_time);
+
+	w = c->session->curw->window;
+	wp = w->active;
+	oo = &c->session->options;
+
+	/* Special case: number keys jump to pane in identify mode. */
+	if (c->flags & CLIENT_IDENTIFY && key >= '0' && key <= '9') {
+		if (c->flags & CLIENT_READONLY)
+			return;
+		wp = window_pane_at_index(w, key - '0');
+		if (wp != NULL && window_pane_visible(wp))
+			window_set_active_pane(w, wp);
+		server_clear_identify(c);
+		return;
+	}
+
+	/* Handle status line. */
+	if (!(c->flags & CLIENT_READONLY)) {
+		status_message_clear(c);
+		server_clear_identify(c);
+	}
+	if (c->prompt_string != NULL) {
+		if (!(c->flags & CLIENT_READONLY))
+			status_prompt_key(c, key);
+		return;
+	}
+
+	/* Check for mouse keys. */
+	if (key == KEYC_MOUSE) {
+		if (c->flags & CLIENT_READONLY)
+			return;
+		if (options_get_number(oo, "mouse-select-pane")) {
+			window_set_active_at(w, mouse->x, mouse->y);
+			server_redraw_window_borders(w);
+			wp = w->active;
+		}
+		window_pane_mouse(wp, c, mouse);
+		return;
+	}
+
+	/* Is this a prefix key? */
+	keylist = options_get_data(&c->session->options, "prefix");
+	isprefix = 0;
+	for (i = 0; i < ARRAY_LENGTH(keylist); i++) {
+		if (key == ARRAY_ITEM(keylist, i)) {
+			isprefix = 1;
+			break;
+		}
+	}
+
+	/* No previous prefix key. */
+	if (!(c->flags & CLIENT_PREFIX)) {
+		if (isprefix)
+			c->flags |= CLIENT_PREFIX;
+		else {
+			/* Try as a non-prefix key binding. */
+			if ((bd = key_bindings_lookup(key)) == NULL) {
+				if (!(c->flags & CLIENT_READONLY))
+					window_pane_key(wp, c, key);
+			} else
+				key_bindings_dispatch(bd, c);
+		}
+		return;
+	}
+
+	/* Prefix key already pressed. Reset prefix and lookup key. */
+	c->flags &= ~CLIENT_PREFIX;
+	if ((bd = key_bindings_lookup(key | KEYC_PREFIX)) == NULL) {
+		/* If repeating, treat this as a key, else ignore. */
+		if (c->flags & CLIENT_REPEAT) {
+			c->flags &= ~CLIENT_REPEAT;
+			if (isprefix)
+				c->flags |= CLIENT_PREFIX;
+			else if (!(c->flags & CLIENT_READONLY))
+				window_pane_key(wp, c, key);
+		}
+		return;
+	}
+
+	/* If already repeating, but this key can't repeat, skip it. */
+	if (c->flags & CLIENT_REPEAT && !bd->can_repeat) {
+		c->flags &= ~CLIENT_REPEAT;
+		if (isprefix)
+			c->flags |= CLIENT_PREFIX;
+		else if (!(c->flags & CLIENT_READONLY))
+			window_pane_key(wp, c, key);
+		return;
+	}
+
+	/* If this key can repeat, reset the repeat flags and timer. */
+	xtimeout = options_get_number(&c->session->options, "repeat-time");
+	if (xtimeout != 0 && bd->can_repeat) {
+		c->flags |= CLIENT_PREFIX|CLIENT_REPEAT;
+
+		tv.tv_sec = xtimeout / 1000;
+		tv.tv_usec = (xtimeout % 1000) * 1000L;
+		evtimer_del(&c->repeat_timer);
+		evtimer_add(&c->repeat_timer, &tv);
+	}
+
+	/* Dispatch the command. */
+	key_bindings_dispatch(bd, c);
 }
 
 /* Client functions that need to happen every loop. */
@@ -231,11 +381,8 @@ server_client_loop(void)
 		if (c == NULL || c->session == NULL)
 			continue;
 
-		server_client_handle_data(c);
-		if (c->session != NULL) {
-			server_client_check_timers(c);
-			server_client_check_redraw(c);
-		}
+		server_client_check_redraw(c);
+		server_client_reset_state(c);
 	}
 
 	/*
@@ -253,146 +400,24 @@ server_client_loop(void)
 	}
 }
 
-/* Handle data input or output from client. */
+/*
+ * Update cursor position and mode settings. The scroll region and attributes
+ * are cleared when idle (waiting for an event) as this is the most likely time
+ * a user may interrupt tmux, for example with ~^Z in ssh(1). This is a
+ * compromise between excessive resets and likelihood of an interrupt.
+ *
+ * tty_region/tty_reset/tty_update_mode already take care of not resetting
+ * things that are already in their default state.
+ */
 void
-server_client_handle_data(struct client *c)
+server_client_reset_state(struct client *c)
 {
-	struct window		*w;
-	struct window_pane	*wp;
-	struct screen		*s;
-	struct options		*oo;
-	struct timeval		 tv_add, tv_now;
-	struct key_binding	*bd;
-	struct keylist		*keylist;
-	struct mouse_event	 mouse;
-	int		 	 key, status, xtimeout, mode, isprefix;
-	u_int			 i;
+	struct window		*w = c->session->curw->window;
+	struct window_pane	*wp = w->active;
+	struct screen		*s = wp->screen;
+	struct options		*oo = &c->session->options;
+	int			 status, mode;
 
-	/* Check and update repeat flag. */
-	if (gettimeofday(&tv_now, NULL) != 0)
-		fatal("gettimeofday failed");
-	xtimeout = options_get_number(&c->session->options, "repeat-time");
-	if (xtimeout != 0 && c->flags & CLIENT_REPEAT) {
-		if (timercmp(&tv_now, &c->repeat_timer, >))
-			c->flags &= ~(CLIENT_PREFIX|CLIENT_REPEAT);
-	}
-
-	/* Process keys. */
-	keylist = options_get_data(&c->session->options, "prefix");
-	while (tty_keys_next(&c->tty, &key, &mouse) == 0) {
-		if (c->session == NULL)
-			return;
-		w = c->session->curw->window;
-		wp = w->active;	/* could die */
-		oo = &c->session->options;
-
-		/* Update activity timer. */
-		memcpy(&c->activity_time, &tv_now, sizeof c->activity_time);
-		memcpy(&c->session->activity_time,
-		    &tv_now, sizeof c->session->activity_time);
-
-		/* Special case: number keys jump to pane in identify mode. */
-		if (c->flags & CLIENT_IDENTIFY && key >= '0' && key <= '9') {	
-			wp = window_pane_at_index(w, key - '0');
-			if (wp != NULL && window_pane_visible(wp))
-				window_set_active_pane(w, wp);
-			server_clear_identify(c);
-			continue;
-		}
-		
-		status_message_clear(c);
-		server_clear_identify(c);
-		if (c->prompt_string != NULL) {
-			status_prompt_key(c, key);
-			continue;
-		}
-
-		/* Check for mouse keys. */
-		if (key == KEYC_MOUSE) {
-			if (options_get_number(oo, "mouse-select-pane")) {
-				window_set_active_at(w, mouse.x, mouse.y);
-				wp = w->active;
-			}
-			window_pane_mouse(wp, c, &mouse);
-			continue;
-		}
-
-		/* Is this a prefix key? */
-		isprefix = 0;
-		for (i = 0; i < ARRAY_LENGTH(keylist); i++) {
-			if (key == ARRAY_ITEM(keylist, i)) {
-				isprefix = 1;
-				break;
-			}
-		}
-
-		/* No previous prefix key. */
-		if (!(c->flags & CLIENT_PREFIX)) {
-			if (isprefix)
-				c->flags |= CLIENT_PREFIX;
-			else {
-				/* Try as a non-prefix key binding. */
-				if ((bd = key_bindings_lookup(key)) == NULL)
-					window_pane_key(wp, c, key);
-				else
-					key_bindings_dispatch(bd, c);
-			}
-			continue;
-		}
-
-		/* Prefix key already pressed. Reset prefix and lookup key. */
-		c->flags &= ~CLIENT_PREFIX;
-		if ((bd = key_bindings_lookup(key | KEYC_PREFIX)) == NULL) {
-			/* If repeating, treat this as a key, else ignore. */
-			if (c->flags & CLIENT_REPEAT) {
-				c->flags &= ~CLIENT_REPEAT;
-				if (isprefix)
-					c->flags |= CLIENT_PREFIX;
-				else
-					window_pane_key(wp, c, key);
-			}
-			continue;
-		}
-
-		/* If already repeating, but this key can't repeat, skip it. */
-		if (c->flags & CLIENT_REPEAT && !bd->can_repeat) {
-			c->flags &= ~CLIENT_REPEAT;
-			if (isprefix)
-				c->flags |= CLIENT_PREFIX;
-			else
-				window_pane_key(wp, c, key);
-			continue;
-		}
-
-		/* If this key can repeat, reset the repeat flags and timer. */
-		if (xtimeout != 0 && bd->can_repeat) {
-			c->flags |= CLIENT_PREFIX|CLIENT_REPEAT;
-
-			tv_add.tv_sec = xtimeout / 1000;
-			tv_add.tv_usec = (xtimeout % 1000) * 1000L;
-			timeradd(&tv_now, &tv_add, &c->repeat_timer);
-		}
-
-		/* Dispatch the command. */
-		key_bindings_dispatch(bd, c);
-	}
-	if (c->session == NULL)
-		return;
-	w = c->session->curw->window;
-	wp = w->active;
-	oo = &c->session->options;
-	s = wp->screen;
-
-	/*
-	 * Update cursor position and mode settings. The scroll region and
-	 * attributes are cleared across poll(2) as this is the most likely
-	 * time a user may interrupt tmux, for example with ~^Z in ssh(1). This
-	 * is a compromise between excessive resets and likelihood of an
-	 * interrupt.
-	 *
-	 * tty_region/tty_reset/tty_update_mode already take care of not
-	 * resetting things that are already in their default state.
-	 */
 	tty_region(&c->tty, 0, c->tty.sy - 1);
 
 	status = options_get_number(oo, "status");
@@ -409,6 +434,17 @@ server_client_handle_data(struct client *c)
 	tty_reset(&c->tty);
 }
 
+/* Repeat time callback. */
+/* ARGSUSED */
+void
+server_client_repeat_timer(unused int fd, unused short events, void *data)
+{
+	struct client	*c = data;
+
+	if (c->flags & CLIENT_REPEAT)
+		c->flags &= ~(CLIENT_PREFIX|CLIENT_REPEAT);
+}
+
 /* Check for client redraws. */
 void
 server_client_check_redraw(struct client *c)
@@ -423,7 +459,7 @@ server_client_check_redraw(struct client *c)
 	if (c->flags & (CLIENT_REDRAW|CLIENT_STATUS)) {
 		if (options_get_number(&s->options, "set-titles"))
 			server_client_set_title(c);
-	
+
 		if (c->message_string != NULL)
 			redraw = status_message_redraw(c);
 		else if (c->prompt_string != NULL)
@@ -435,8 +471,8 @@ server_client_check_redraw(struct client *c)
 	}
 
 	if (c->flags & CLIENT_REDRAW) {
-		screen_redraw_screen(c, 0);
-		c->flags &= ~CLIENT_STATUS;
+		screen_redraw_screen(c, 0, 0);
+		c->flags &= ~(CLIENT_STATUS|CLIENT_BORDERS);
 	} else {
 		TAILQ_FOREACH(wp, &c->session->curw->window->panes, entry) {
 			if (wp->flags & PANE_REDRAW)
@@ -444,12 +480,15 @@ server_client_check_redraw(struct client *c)
 		}
 	}
 
+	if (c->flags & CLIENT_BORDERS)
+		screen_redraw_screen(c, 0, 1);
+
 	if (c->flags & CLIENT_STATUS)
-		screen_redraw_screen(c, 1);
+		screen_redraw_screen(c, 1, 0);
 
 	c->tty.flags |= flags;
 
-	c->flags &= ~(CLIENT_REDRAW|CLIENT_STATUS);
+	c->flags &= ~(CLIENT_REDRAW|CLIENT_STATUS|CLIENT_BORDERS);
 }
 
 /* Set client title. */
@@ -461,8 +500,8 @@ server_client_set_title(struct client *c)
 	char		*title;
 
 	template = options_get_string(&s->options, "set-titles-string");
-	
-	title = status_replace(c, template, time(NULL));
+
+	title = status_replace(c, NULL, template, time(NULL), 1);
 	if (c->title == NULL || strcmp(title, c->title) != 0) {
 		if (c->title != NULL)
 			xfree(c->title);
@@ -470,48 +509,6 @@ server_client_set_title(struct client *c)
 		tty_set_title(&c->tty, c->title);
 	}
 	xfree(title);
-}
-
-/* Check client timers. */
-void
-server_client_check_timers(struct client *c)
-{
-	struct session	*s = c->session;
-	struct job	*job;
-	struct timeval	 tv;
-	u_int		 interval;
-
-	if (gettimeofday(&tv, NULL) != 0)
-		fatal("gettimeofday failed");
-
-	if (c->flags & CLIENT_IDENTIFY && timercmp(&tv, &c->identify_timer, >))
-		server_clear_identify(c);
-
-	if (c->message_string != NULL && timercmp(&tv, &c->message_timer, >))
-		status_message_clear(c);
-
-	if (c->message_string != NULL || c->prompt_string != NULL) {
-		/*
-		 * Don't need timed redraw for messages/prompts so bail now.
-		 * The status timer isn't reset when they are redrawn anyway.
-		 */
-		return;
-
-	}
-	if (!options_get_number(&s->options, "status"))
-		return;
-
-	/* Check timer; resolution is only a second so don't be too clever. */
-	interval = options_get_number(&s->options, "status-interval");
-	if (interval == 0)
-		return;
-	if (tv.tv_sec < c->status_timer.tv_sec ||
-	    ((u_int) tv.tv_sec) - c->status_timer.tv_sec >= interval) {
-		/* Run the jobs for this client and schedule for redraw. */
-		RB_FOREACH(job, jobs, &c->status_jobs)
-			job_run(job);
-		c->flags |= CLIENT_STATUS;
-	}
 }
 
 /* Dispatch message from client. */
@@ -654,7 +651,7 @@ server_client_msg_info(struct cmd_ctx *ctx, const char *fmt, ...)
 	struct msg_print_data	data;
 	va_list			ap;
 
-	if (be_quiet)
+	if (options_get_number(&global_options, "quiet"))
 		return;
 
 	va_start(ap, fmt);
@@ -670,7 +667,6 @@ server_client_msg_command(struct client *c, struct msg_command_data *data)
 {
 	struct cmd_ctx	 ctx;
 	struct cmd_list	*cmdlist = NULL;
-	struct cmd	*cmd;
 	int		 argc;
 	char	       **argv, *cause;
 
@@ -703,17 +699,6 @@ server_client_msg_command(struct client *c, struct msg_command_data *data)
 	}
 	cmd_free_argv(argc, argv);
 
-	if (data->pid != -1) {
-		TAILQ_FOREACH(cmd, cmdlist, qentry) {
-			if (cmd->entry->flags & CMD_CANTNEST) {
-				server_client_msg_error(&ctx,
-				    "sessions should be nested with care. "
-				    "unset $TMUX to force");
-				goto error;
-			}
-		}
-	}
-
 	if (cmd_list_exec(cmdlist, &ctx) != 1)
 		server_write_client(c, MSG_EXIT, NULL, 0);
 	cmd_list_free(cmdlist);
@@ -743,6 +728,8 @@ server_client_msg_identify(
 		c->tty.term_flags |= TERM_256COLOURS;
 	else if (data->flags & IDENTIFY_88COLOURS)
 		c->tty.term_flags |= TERM_88COLOURS;
+	c->tty.key_callback = server_client_handle_key;
+	c->tty.key_data = c;
 
 	tty_resize(&c->tty);
 
@@ -755,14 +742,14 @@ server_client_msg_shell(struct client *c)
 {
 	struct msg_shell_data	 data;
 	const char		*shell;
-	
+
 	shell = options_get_string(&global_s_options, "default-shell");
 
 	if (*shell == '\0' || areshell(shell))
 		shell = _PATH_BSHELL;
 	if (strlcpy(data.shell, shell, sizeof data.shell) >= sizeof data.shell)
 		strlcpy(data.shell, _PATH_BSHELL, sizeof data.shell);
-	
+
 	server_write_client(c, MSG_SHELL, &data, sizeof data);
 	c->flags |= CLIENT_BAD;	/* it will die after exec */
 }

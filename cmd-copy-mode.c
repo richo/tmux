@@ -1,4 +1,4 @@
-/* $Id: cmd-copy-mode.c,v 1.24 2009/10/06 14:14:06 tcunha Exp $ */
+/* $Id: cmd-copy-mode.c,v 1.26 2010/01/05 23:50:22 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -30,12 +30,12 @@ int	cmd_copy_mode_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_copy_mode_entry = {
 	"copy-mode", NULL,
 	"[-u] " CMD_TARGET_PANE_USAGE,
-	0, CMD_CHFLAG('u'),
+	0, "u",
 	cmd_copy_mode_init,
 	cmd_target_parse,
 	cmd_copy_mode_exec,
 	cmd_target_free,
-	NULL
+	cmd_target_print
 };
 
 void
@@ -48,7 +48,7 @@ cmd_copy_mode_init(struct cmd *self, int key)
 
 	switch (key) {
 	case KEYC_PPAGE:
-		data->chflags |= CMD_CHFLAG('u');
+		cmd_set_flag(&data->chflags, 'u');
 		break;
 	}
 }
@@ -63,7 +63,7 @@ cmd_copy_mode_exec(struct cmd *self, struct cmd_ctx *ctx)
 		return (-1);
 
 	window_pane_set_mode(wp, &window_copy_mode);
-	if (wp->mode == &window_copy_mode && data->chflags & CMD_CHFLAG('u'))
+	if (wp->mode == &window_copy_mode && cmd_check_flag(data->chflags, 'u'))
 		window_copy_pageup(wp);
 
 	return (0);

@@ -1,4 +1,4 @@
-/* $Id: cmd-new-session.c,v 1.69 2009/10/12 00:49:06 tcunha Exp $ */
+/* $Id: cmd-new-session.c,v 1.76 2010/02/26 13:28:15 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -44,7 +44,7 @@ struct cmd_new_session_data {
 const struct cmd_entry cmd_new_session_entry = {
 	"new-session", "new",
 	"[-d] [-n window-name] [-s session-name] [-t target-session] [command]",
-	CMD_STARTSERVER|CMD_CANTNEST|CMD_SENDENVIRON, 0,
+	CMD_STARTSERVER|CMD_CANTNEST|CMD_SENDENVIRON, "",
 	cmd_new_session_init,
 	cmd_new_session_parse,
 	cmd_new_session_exec,
@@ -52,6 +52,7 @@ const struct cmd_entry cmd_new_session_entry = {
 	cmd_new_session_print
 };
 
+/* ARGSUSED */
 void
 cmd_new_session_init(struct cmd *self, unused int arg)
 {
@@ -121,12 +122,13 @@ cmd_new_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 	struct cmd_new_session_data	*data = self->data;
 	struct session			*s, *groupwith;
 	struct window			*w;
+	struct window_pane		*wp;
 	struct environ			 env;
 	struct termios			 tio, *tiop;
 	const char			*update;
 	char				*overrides, *cmd, *cwd, *cause;
 	int				 detached, idx;
-	u_int				 sx, sy;
+	u_int				 sx, sy, i;
 
 	if (data->newname != NULL && session_find(data->newname) != NULL) {
 		ctx->error(ctx, "duplicate session: %s", data->newname);
@@ -183,8 +185,8 @@ cmd_new_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 			ctx->error(ctx, "not a terminal");
 			return (-1);
 		}
-		
-		overrides = 
+
+		overrides =
 		    options_get_string(&global_s_options, "terminal-overrides");
 		if (tty_open(&ctx->cmdclient->tty, overrides, &cause) != 0) {
 			ctx->error(ctx, "open terminal failed: %s", cause);
@@ -266,17 +268,33 @@ cmd_new_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 	 * Set the client to the new session. If a command client exists, it is
 	 * taking this session and needs to get MSG_READY and stay around.
 	 */
- 	if (!detached) {
+	if (!detached) {
 		if (ctx->cmdclient != NULL) {
 			server_write_client(ctx->cmdclient, MSG_READY, NULL, 0);
- 			ctx->cmdclient->session = s;
+			ctx->cmdclient->session = s;
 			server_redraw_client(ctx->cmdclient);
 		} else {
- 			ctx->curclient->session = s;
+			ctx->curclient->session = s;
 			server_redraw_client(ctx->curclient);
 		}
 	}
 	recalculate_sizes();
+	server_update_socket();
+
+	/*
+	 * If there are still configuration file errors to display, put the new
+	 * session's current window into more mode and display them now.
+	 */
+	if (cfg_finished && !ARRAY_EMPTY(&cfg_causes)) {
+		wp = s->curw->window->active;
+		window_pane_set_mode(wp, &window_more_mode);
+		for (i = 0; i < ARRAY_LENGTH(&cfg_causes); i++) {
+			cause = ARRAY_ITEM(&cfg_causes, i);
+			window_more_add(wp, "%s", cause);
+			xfree(cause);
+		}
+		ARRAY_FREE(&cfg_causes);
+	}
 
 	return (!detached);	/* 1 means don't tell command client to exit */
 }
@@ -306,10 +324,12 @@ cmd_new_session_print(struct cmd *self, char *buf, size_t len)
 		return (off);
 	if (off < len && data->flag_detached)
 		off += xsnprintf(buf + off, len - off, " -d");
-	if (off < len && data->newname != NULL)
-		off += cmd_prarg(buf + off, len - off, " -s ", data->newname);
 	if (off < len && data->winname != NULL)
 		off += cmd_prarg(buf + off, len - off, " -n ", data->winname);
+	if (off < len && data->newname != NULL)
+		off += cmd_prarg(buf + off, len - off, " -s ", data->newname);
+	if (off < len && data->target != NULL)
+		off += cmd_prarg(buf + off, len - off, " -t ", data->target);
 	if (off < len && data->cmd != NULL)
 		off += cmd_prarg(buf + off, len - off, " ", data->cmd);
 	return (off);

@@ -1,4 +1,4 @@
-/* $Id: cmd-show-buffer.c,v 1.10 2009/09/07 23:48:54 tcunha Exp $ */
+/* $Id: cmd-show-buffer.c,v 1.12 2009/12/04 22:14:47 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -29,7 +29,7 @@ int	cmd_show_buffer_exec(struct cmd *, struct cmd_ctx *);
 const struct cmd_entry cmd_show_buffer_entry = {
 	"show-buffer", "showb",
 	CMD_BUFFER_SESSION_USAGE,
-	0, 0,
+	0, "",
 	cmd_buffer_init,
 	cmd_buffer_parse,
 	cmd_show_buffer_exec,
@@ -71,24 +71,24 @@ cmd_show_buffer_exec(struct cmd *self, struct cmd_ctx *ctx)
 	width = s->sx;
 	if (ctx->cmdclient != NULL)
 		width = ctx->cmdclient->tty.sx;
-	
+
 	buf = xmalloc(width + 1);
 	len = 0;
-	
+
 	ptr = in;
 	do {
 		buf[len++] = *ptr++;
-		
+
 		if (len == width || buf[len - 1] == '\n') {
 			if (buf[len - 1] == '\n')
 				len--;
 			buf[len] = '\0';
 
-			ctx->print(ctx, "%s", buf);		
+			ctx->print(ctx, "%s", buf);
 			len = 0;
 		}
 	} while (*ptr != '\0');
-	
+
 	if (len != 0) {
 		buf[len] = '\0';
 		ctx->print(ctx, "%s", buf);

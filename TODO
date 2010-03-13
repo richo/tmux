@@ -38,8 +38,8 @@
   "new-session" if-shell "[ -e $HOME/.tmux-session.conf ]" source-file
   $HOME/.tmux-session.conf
 - get it passing all the vttest tests that don't require resizing the terminal
-- esc seq to set window title should be documented and should set
-  automatic-rename
+- esc seq to set window name and title should be documented, and name variant
+  should clear automatic-rename
 - way to set socket path from config file
 - XXX once env stuff is in, default-path and VISUAL/EDITOR should be picked up
   when session is started
@@ -56,9 +56,6 @@
 - a way for force-width/height to apply to only one pane (how?)
 - command to list what is actually running in each window with command line,
   pid (need some adaption of the osdep code)
-- string option to change/remove the symbols (*-+ etc) in status line
-  * or to set entire format, eg window-list-format '#N:#W#P' or something,
-  then could use embedded colours
 - support for bce
 - it would be nice if the start/end line keys in copy mode were aware of
   wrapped lines
@@ -68,7 +65,6 @@
 		   for redraw
 - handle resize better in copy mode
 - way to copy stuff that is off screen due to resize
-- a way to address panes by name ("top-left") and position ("0,0")
 - commands should be able to succeed or fail and have || or && for command
   lists
 - support the mouse wheel to scroll through history
@@ -78,20 +74,62 @@
 - UTF-8 to a non-UTF-8 terminal should not be able to balls up
   the terminal - www/ruby-addressable; make regress
 - copy mode needs a tidy/cleanup
-- things like display-message will leak job entries if #() is used
-- message log
-- an option to NOT remove message when key pressed
-- would be nice to be able to press 0-9a-zA-Z to select window in choose-window
-  mode, also to start typing and it searches
-- the wrapping stuff should work when redrawn from scroll mode too (screen_write_copy)
 - ability to save history (to buffer?)
 - multiple keys could be done with tables, ie have prefixes go and instead
 	bind -n ^A prefix-table "default"
-  where prefix-table sets command lookup table and sets prefix flag, then next key
-  is looked up in that table
-- check fix UTF-8 and split-window? should be okay
+  where prefix-table sets command lookup table and sets prefix flag, then next
+  key is looked up in that table
 - UTF-8 should be a pointer into a combined string buffer
 - check irssi (term_charset) works with UTF-8
-- rectangle copy/paste
-- half page/up down are missing from key table
 - support esc-esc to quit in modes
+- fix ctrl+F1-F4 output. to what?
+- look into xterm clearing its selection when scrolling etc
+- better utf8 support:
+  	 window names
+	 prompt input
+	 message display
+	 copy and paste cursor and wide characters
+	 ...?
+- option so that when session is destroyed, attach client to another session
+  rather than exiting
+- session history for client and last-session command
+- option to change status line colour when current window is in a mode?
+- option to move copy mode indicator into status line
+- list-buffer/show-buffer should display UTF-8
+- selection behaviour closer to vi in vi mode
+- live update: server started with -U connects to server, requests sessions and
+  windows, receives fds
+- convert status line history to be server global (anything else?)
+- something for -t "last window in session" so a session can be used as a stack
+- command to show a tree of sessions-windows-panes (active marked with *)
+- sort out inheriting config from shell on new sessions/windows:
+        should pick up default-path/termios/etc from client if possible,
+	else leave empty/default
+- define custom layouts
+- link panes into multiple windows
+- -h option to capture-pane to capture the history as well
+- bells should be passed between sessions with visual-bell etc
+- use screen-256color when started on 256 colour terminal??
+- if-shell/run-shell should block further command execution in the same command
+  sequence until its shell exits, to allow them to be used from the config file
+- better session sharing: create-socket command to create socket somewhere (-r
+  flag for readonly)
+- allow buffer to be specified when copying in copy mode
+- multiline status line
+- flag for absolute pane size to resize-pane
+- sanity check input to socket
+- stdin fd should be passed up to parent so load-buffer and others could use it
+  for nonattaching clients
+- environment should be set up for jobs
+- select-buffer command
+- fix jobs so they block in config file rather than executing at an arbitrary
+  future point -- need state stored in client so other clients can proceed
+- rectangle copy:
+	when selecting leftward, cursor should be inside block per emacs
+	key to rotate corner at which cursor is
+- double C-a should walk back over wrapped lines like C-e
+- support title stack, both internally and externally
+	http://docs.freebsd.org/cgi/getmsg.cgi?fetch=1149299+0+archive/2010/freebsd-questions/20100207.freebsd-questions
+- copy buffers should be global, limit can be server option, nuke copy-buffer
+  command
+- command to show status line information briefly when it is off
