@@ -1,11 +1,11 @@
-tmux (1.2-1~1.gbp342953) UNRELEASED; urgency=low
+tmux (1.2-1) unstable; urgency=low
 
-  ** SNAPSHOT build @342953ad3f5c167504c63399cc2c269a24fba033 **
-
-  * add 2010 to debian/copyright.
-  * Imported Upstream version 1.2
+  * New upstream release fixes "cannot find opposite of break-window" 
+    (Closes: #573616)
+  * New build-depend on libevent-dev as upstream needs this now.
   * Bump to standard version 3.8.4 (no changes needed), adopted new source
     format and switched parts of debian/rules to dh_auto_*.
+  * Add year 2010 to debian/copyright.
 
  -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sat, 13 Mar 2010 23:43:16 +0100
 
