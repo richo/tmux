@@ -1,9 +1,9 @@
 # fixes lintian's complains about missing hyphens.
 Index: tmux/tmux.1
 ===================================================================
---- tmux.orig/tmux.1	2010-03-13 22:44:29.346716913 +0100
-+++ tmux/tmux.1	2010-03-13 23:29:37.826216713 +0100
-@@ -385,13 +385,13 @@
+--- tmux.orig/tmux.1	2010-03-14 13:45:24.211534123 +0100
++++ tmux/tmux.1	2010-03-14 13:50:29.608071268 +0100
+@@ -385,24 +385,24 @@
  .Nm
  commands include:
  .Bd -literal -offset indent
@@ -21,6 +21,20 @@ Index: tmux/tmux.1
  .Ed
  .Pp
  Or from
+ .Xr sh 1 :
+ .Pp
+ .Bd -literal -offset indent
+-$ tmux kill-window -t :1
++$ tmux kill-window \-t :1
+ 
+-$ tmux new-window \\; split-window -d
++$ tmux new-window \\; split-window \-d
+ 
+-$ tmux new-session -d 'vi /etc/passwd' \\; split-window -d \\; attach
++$ tmux new-session \-d 'vi /etc/passwd' \\; split-window \-d \\; attach
+ .Ed
+ .Sh CLIENTS AND SESSIONS
+ The
 @@ -807,7 +807,7 @@
  and the result executed as a command.
  If
