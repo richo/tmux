@@ -1,8 +1,6 @@
 # Harden write and chdir because of ignored return value
-Index: tmux/tty.c
-===================================================================
---- tmux.orig/tty.c	2010-03-13 22:44:29.000000000 +0100
-+++ tmux/tty.c	2010-03-13 23:28:05.038724665 +0100
+--- a/tty.c
++++ b/tty.c
 @@ -300,7 +300,8 @@
  void
  tty_raw(struct tty *tty, const char *s)
@@ -33,10 +31,18 @@ Index: tmux/tty.c
  }
  
  void
-Index: tmux/window.c
-===================================================================
---- tmux.orig/window.c	2010-03-13 22:44:29.000000000 +0100
-+++ tmux/window.c	2010-03-13 23:28:05.038724665 +0100
+@@ -370,7 +373,8 @@
+ 	size = grid_utf8_size(gu);
+ 	bufferevent_write(tty->event, gu->data, size);
+ 	if (tty->log_fd != -1)
+-		write(tty->log_fd, gu->data, size);
++		if(write(tty->log_fd, gu->data, size) == -1)
++			fatal("write failed");
+ 	tty->cx += gu->width;
+ }
+ 
+--- a/window.c
++++ b/window.c
 @@ -518,7 +518,9 @@
  		return (-1);
  	case 0:
@@ -48,3 +54,26 @@ Index: tmux/window.c
  
  		if (tcgetattr(STDIN_FILENO, &tio2) != 0)
  			fatal("tcgetattr failed");
+--- a/client.c
++++ b/client.c
+@@ -300,6 +300,7 @@
+ 		datalen = imsg.hdr.len - IMSG_HEADER_SIZE;
+ 
+ 		log_debug("client got %d", imsg.hdr.type);
++		int rc = 0;
+ 		switch (imsg.hdr.type) {
+ 		case MSG_DETACH:
+ 			if (datalen != 0)
+@@ -347,7 +348,11 @@
+ 			memcpy(&lockdata, imsg.data, sizeof lockdata);
+ 
+ 			lockdata.cmd[(sizeof lockdata.cmd) - 1] = '\0';
+-			system(lockdata.cmd);
++			rc = system(lockdata.cmd);
++			if(rc == 127)
++				fatal("lock command could not be executed!");
++			if(rc == -1)
++				fatal("lock command process could not created!");
+ 			client_write_server(MSG_UNLOCK, NULL, 0);
+ 			break;
+ 		default:

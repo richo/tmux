@@ -4,9 +4,8 @@ export DEB_BUILD_HARDENING=1
 
 configure: configure-stamp
 
-include /usr/share/quilt/quilt.make
 
-configure-stamp: patch
+configure-stamp: 
 	dh_testdir
 	dh_auto_configure
 	touch configure-stamp
@@ -18,7 +17,7 @@ build-stamp: configure-stamp
 	dh_auto_build
 	touch $@
 
-clean: unpatch
+clean: 
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
@@ -59,4 +58,4 @@ binary-arch: build install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: patch build clean binary-indep binary-arch binary install configure
+.PHONY: build clean binary-indep binary-arch binary install configure

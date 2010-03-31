@@ -1,13 +1,14 @@
 tmux (1.2-1) unstable; urgency=low
 
   * New upstream release fixes "cannot find opposite of break-window" 
-    (Closes: #573616)
+    (Closes: #573616, #575989)
   * New build-depend on libevent-dev as upstream needs this now.
   * Bump to standard version 3.8.4 (no changes needed), adopted new source
     format and switched parts of debian/rules to dh_auto_*.
   * Add year 2010 to debian/copyright.
+  * Refreshed patch 06_hardening_write_return.diff with help from Micah Cowan. 
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sat, 13 Mar 2010 23:43:16 +0100
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Wed, 31 Mar 2010 19:12:58 +0200
 
 tmux (1.1-1) unstable; urgency=low
 
