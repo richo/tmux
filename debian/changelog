@@ -7,8 +7,9 @@ tmux (1.2-1) unstable; urgency=low
     format and switched parts of debian/rules to dh_auto_*.
   * Add year 2010 to debian/copyright.
   * Refreshed patch 06_hardening_write_return.diff with help from Micah Cowan. 
+  * Add hardening-wrapper to build-depends (Closes: #576157)
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Wed, 31 Mar 2010 19:12:58 +0200
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Thu, 01 Apr 2010 12:02:26 +0200
 
 tmux (1.1-1) unstable; urgency=low
 
