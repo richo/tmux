@@ -1,15 +1,23 @@
 tmux (1.2-1) unstable; urgency=low
 
-  * New upstream release fixes "cannot find opposite of break-window" 
+  [ Karl Ferdinand Ebert ]
+  * New upstream release, fixes "cannot find opposite of break-window"
     (Closes: #573616, #575989)
   * New build-depend on libevent-dev as upstream needs this now.
   * Bump to standard version 3.8.4 (no changes needed), adopted new source
     format and switched parts of debian/rules to dh_auto_*.
   * Add year 2010 to debian/copyright.
-  * Refreshed patch 06_hardening_write_return.diff with help from Micah Cowan. 
+  * Refreshed patch 06_hardening_write_return.diff with help from Micah Cowan.
   * Add hardening-wrapper to build-depends (Closes: #576157)
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Thu, 01 Apr 2010 12:02:26 +0200
+  [ Romain Francoise ]
+  * Add myself to Uploaders.
+  * Add Vcs-Browser and Vcs-Git fields in debian/control.
+  * Use hardening-includes rather than hardening-wrapper.
+  * Simplify debian/rules further using dh(1).
+  * Bump debhelper build-depends to >= 7.0.50~ for dh overrides.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Wed, 14 Apr 2010 20:12:57 +0200
 
 tmux (1.1-1) unstable; urgency=low
 
