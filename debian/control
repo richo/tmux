@@ -3,7 +3,8 @@ Section: admin
 Priority: optional
 Maintainer: Karl Ferdinand Ebert <kfebert@gmail.com>
 Uploaders: Romain Francoise <rfrancoise@debian.org>
-Build-Depends: debhelper (>= 7), libncurses5-dev, libevent-dev, hardening-wrapper
+Build-Depends: debhelper (>= 7), libncurses5-dev, libevent-dev,
+               hardening-includes
 Standards-Version: 3.8.4
 Homepage: http://sf.net/projects/tmux
 Vcs-Browser: http://git.debian.org/?p=collab-maint/tmux.git

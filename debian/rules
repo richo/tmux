@@ -1,6 +1,9 @@
 #!/usr/bin/make -f
 
-export DEB_BUILD_HARDENING=1
+include /usr/share/hardening-includes/hardening.make
+
+export CFLAGS += $(HARDENING_CFLAGS)
+export LDFLAGS += $(HARDENING_LDFLAGS)
 
 configure: configure-stamp
 
