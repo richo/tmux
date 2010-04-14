@@ -16,8 +16,9 @@ tmux (1.2-1) unstable; urgency=low
   * Use hardening-includes rather than hardening-wrapper.
   * Simplify debian/rules further using dh(1).
   * Bump debhelper build-depends to >= 7.0.50~ for dh overrides.
+  * Add debian/patches/08_avoid_double_free.diff.
 
- -- Romain Francoise <rfrancoise@debian.org>  Wed, 14 Apr 2010 20:12:57 +0200
+ -- Romain Francoise <rfrancoise@debian.org>  Wed, 14 Apr 2010 21:50:36 +0200
 
 tmux (1.1-1) unstable; urgency=low
 
