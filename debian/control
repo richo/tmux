@@ -6,7 +6,7 @@ Uploaders: Romain Francoise <rfrancoise@debian.org>
 Build-Depends: debhelper (>= 7.0.50~), libncurses5-dev, libevent-dev,
                hardening-includes
 Standards-Version: 3.8.4
-Homepage: http://sf.net/projects/tmux
+Homepage: http://tmux.sourceforge.net/
 Vcs-Browser: http://git.debian.org/?p=collab-maint/tmux.git
 Vcs-Git: git://git.debian.org/collab-maint/tmux.git
 
