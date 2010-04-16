@@ -1,4 +1,4 @@
-02_fix_wring_location.diff
+02_fix_wrong_location.diff
 03_proper_socket_handling.diff
 04_dropping_unnecessary_privileges.diff
 05_build_kfreebsd_hurd.diff
