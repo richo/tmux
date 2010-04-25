@@ -6,3 +6,4 @@
 07_fix_hyphen.diff
 08_avoid_double_free.diff
 09_show_dead_windows.diff
+10_no_zombies.diff
