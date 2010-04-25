@@ -1,0 +1,20 @@
+Mark zombie windows as dead in choose-window list.
+
+Cherry-picked from upstream CVS (OpenBSD cmd-choose-window.c r1.13).
+---
+ cmd-choose-window.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- a/cmd-choose-window.c
++++ b/cmd-choose-window.c
+@@ -101,8 +101,9 @@
+ 			left = right = "";
+ 
+ 		window_choose_add(wl->window->active,
+-		    wm->idx, "%3d: %s%c [%ux%u] (%u panes)%s%s%s",
++		    wm->idx, "%3d: %s%c [%ux%u] (%u panes%s)%s%s%s",
+ 		    wm->idx, w->name, flag, w->sx, w->sy, window_count_panes(w),
++		    w->active->fd == -1 ? ", dead" : "",
+ 		    left, title, right);
+ 	}
+ 
