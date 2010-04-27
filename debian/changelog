@@ -1,3 +1,10 @@
+tmux (1.2-3) unstable; urgency=low
+
+  * Drop 10_no_zombies.diff, it causes a regression far worse than the bug
+    it fixes (closes: #579353).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Tue, 27 Apr 2010 18:57:03 +0200
+
 tmux (1.2-2) unstable; urgency=low
 
   * Make Homepage point to the website, not the SF project page.
