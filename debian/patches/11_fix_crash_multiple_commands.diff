@@ -1,0 +1,16 @@
+Fixes crash with multiple command-line commands.
+
+Cherry-picked from upstream CVS (OpenBSD cmd-list.c r1.4).
+--- a/cmd-list.c
++++ b/cmd-list.c
+@@ -99,6 +99,10 @@
+ 			if (ctx->curclient == NULL) {
+ 				ctx->curclient = ctx->cmdclient;
+ 				ctx->cmdclient = NULL;
++
++				ctx->error = key_bindings_error;
++				ctx->print = key_bindings_print;
++				ctx->info = key_bindings_info;
+ 			}
+ 		}
+ 	}
