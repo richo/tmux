@@ -1,3 +1,9 @@
+tmux (1.2-4) UNRELEASED; urgency=low
+
+  * Add patch 11_fix_crash_multiple_commands.diff from upstream CVS. 
+
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Wed, 05 May 2010 12:53:51 +0200
+
 tmux (1.2-3) unstable; urgency=low
 
   * Drop 10_no_zombies.diff, it causes a regression far worse than the bug
