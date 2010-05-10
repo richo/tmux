@@ -1,4 +1,4 @@
-tmux (1.2-4) UNRELEASED; urgency=low
+tmux (1.2-4) unstable; urgency=low
 
   * Add patch 11_fix_crash_multiple_commands.diff from upstream CVS. 
 
