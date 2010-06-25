@@ -7,3 +7,4 @@
 08_avoid_double_free.diff
 09_show_dead_windows.diff
 11_fix_crash_multiple_commands.diff
+12_ld_as_needed.diff

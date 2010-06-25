@@ -1,3 +1,10 @@
+tmux (1.2-5) unstable; urgency=low
+
+  * Update debian/copyright.
+  * Add patch 12_ld_as_needed.diff from  Pierre Habouzit (thanks).
+
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Fri, 25 Jun 2010 10:55:57 +0200
+
 tmux (1.2-4) unstable; urgency=low
 
   * Add patch 11_fix_crash_multiple_commands.diff from upstream CVS. 

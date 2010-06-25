@@ -143,4 +143,6 @@ Copyright:
 
 File: debian/patches/08_fix_colours.diff
   Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+File: debian/patches/12_ld_as_needed.diff
+  Copyright (c) 2009 Pierre Habouzit <madcoder@debian.org>
 	
