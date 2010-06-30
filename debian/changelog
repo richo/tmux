@@ -1,9 +1,11 @@
 tmux (1.2-5) unstable; urgency=low
 
+  [ Karl Ferdinand Ebert ]
   * Update debian/copyright.
   * Add patch 12_ld_as_needed.diff from  Pierre Habouzit (thanks).
+  * Bump to standard version 3.9.0, no changes needed. 
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Fri, 25 Jun 2010 10:55:57 +0200
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Wed, 30 Jun 2010 10:45:57 +0200
 
 tmux (1.2-4) unstable; urgency=low
 
