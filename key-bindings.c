@@ -1,4 +1,4 @@
-/* $Id: key-bindings.c,v 1.88 2010/02/08 18:27:34 tcunha Exp $ */
+/* $Id: key-bindings.c,v 1.94 2010/07/02 02:43:01 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -122,10 +122,11 @@ key_bindings_init(void)
 		{ '8', 			  0, &cmd_select_window_entry },
 		{ '9', 			  0, &cmd_select_window_entry },
 		{ ':', 			  0, &cmd_command_prompt_entry },
+		{ '=', 			  0, &cmd_choose_buffer_entry },
 		{ '?', 			  0, &cmd_list_keys_entry },
 		{ 'D',			  0, &cmd_choose_client_entry },
 		{ '[', 			  0, &cmd_copy_mode_entry },
-		{ '\'',			  0, &cmd_select_prompt_entry },
+		{ '\'',			  0, &cmd_command_prompt_entry },
 		{ '\002', /* C-b */	  0, &cmd_send_prefix_entry },
 		{ '\017', /* C-o */	  0, &cmd_rotate_window_entry },
 		{ '\032', /* C-z */	  0, &cmd_suspend_client_entry },
@@ -136,7 +137,7 @@ key_bindings_init(void)
 		{ 'i',			  0, &cmd_display_message_entry },
 		{ 'l', 			  0, &cmd_last_window_entry },
 		{ 'n', 			  0, &cmd_next_window_entry },
-		{ 'o', 			  0, &cmd_down_pane_entry },
+		{ 'o', 			  0, &cmd_select_pane_entry },
 		{ 'p', 			  0, &cmd_previous_window_entry },
 		{ 'q',			  0, &cmd_display_panes_entry },
 		{ 'r', 			  0, &cmd_refresh_client_entry },
@@ -151,12 +152,15 @@ key_bindings_init(void)
 		{ '2' | KEYC_ESCAPE,	  0, &cmd_select_layout_entry },
 		{ '3' | KEYC_ESCAPE,	  0, &cmd_select_layout_entry },
 		{ '4' | KEYC_ESCAPE,	  0, &cmd_select_layout_entry },
+		{ '5' | KEYC_ESCAPE,	  0, &cmd_select_layout_entry },
 		{ KEYC_PPAGE, 		  0, &cmd_copy_mode_entry },
 		{ 'n' | KEYC_ESCAPE, 	  0, &cmd_next_window_entry },
 		{ 'o' | KEYC_ESCAPE,	  0, &cmd_rotate_window_entry },
 		{ 'p' | KEYC_ESCAPE, 	  0, &cmd_previous_window_entry },
-		{ KEYC_UP, 		  0, &cmd_up_pane_entry },
-		{ KEYC_DOWN, 		  0, &cmd_down_pane_entry },
+		{ KEYC_UP, 		  1, &cmd_select_pane_entry },
+		{ KEYC_DOWN, 		  1, &cmd_select_pane_entry },
+		{ KEYC_LEFT, 		  1, &cmd_select_pane_entry },
+		{ KEYC_RIGHT, 		  1, &cmd_select_pane_entry },
 		{ KEYC_UP | KEYC_ESCAPE,  1, &cmd_resize_pane_entry },
 		{ KEYC_DOWN | KEYC_ESCAPE,  1, &cmd_resize_pane_entry },
 		{ KEYC_LEFT | KEYC_ESCAPE,  1, &cmd_resize_pane_entry },
@@ -174,14 +178,15 @@ key_bindings_init(void)
 
 	for (i = 0; i < nitems(table); i++) {
 		cmdlist = xmalloc(sizeof *cmdlist);
-		TAILQ_INIT(cmdlist);
+		TAILQ_INIT(&cmdlist->list);
+		cmdlist->references = 1;
 
 		cmd = xmalloc(sizeof *cmd);
 		cmd->entry = table[i].entry;
 		cmd->data = NULL;
 		if (cmd->entry->init != NULL)
 			cmd->entry->init(cmd, table[i].key);
-		TAILQ_INSERT_HEAD(cmdlist, cmd, qentry);
+		TAILQ_INSERT_HEAD(&cmdlist->list, cmd, qentry);
 
 		key_bindings_add(
 		    table[i].key | KEYC_PREFIX, table[i].can_repeat, cmdlist);
@@ -209,12 +214,14 @@ key_bindings_print(struct cmd_ctx *ctx, const char *fmt, ...)
 	struct winlink	*wl = ctx->curclient->session->curw;
 	va_list		 ap;
 
-	if (wl->window->active->mode != &window_more_mode)
+	if (wl->window->active->mode != &window_copy_mode) {
 		window_pane_reset_mode(wl->window->active);
-	window_pane_set_mode(wl->window->active, &window_more_mode);
+		window_pane_set_mode(wl->window->active, &window_copy_mode);
+		window_copy_init_for_output(wl->window->active);
+	}
 
 	va_start(ap, fmt);
-	window_more_vadd(wl->window->active, fmt, ap);
+	window_copy_vadd(wl->window->active, fmt, ap);
 	va_end(ap);
 }
 
@@ -253,7 +260,7 @@ key_bindings_dispatch(struct key_binding *bd, struct client *c)
 	ctx.cmdclient = NULL;
 
 	readonly = 1;
-	TAILQ_FOREACH(cmd, bd->cmdlist, qentry) {
+	TAILQ_FOREACH(cmd, &bd->cmdlist->list, qentry) {
 		if (!(cmd->entry->flags & CMD_READONLY))
 			readonly = 0;
 	}

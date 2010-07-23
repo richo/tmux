@@ -1,7 +1,7 @@
 " Vim syntax file
 " Language: tmux(1) configuration file
 " Maintainer: Tiago Cunha <me@tiagocunha.org>
-" Last Change: $Date: 2010/02/26 13:33:22 $
+" Last Change: $Date: 2010/07/02 02:46:39 $
 " License: This file is placed in the public domain.
 
 if version < 600
@@ -29,7 +29,7 @@ syn keyword tmuxCmds new[-session] start[-server] kill-server setw
 syn keyword tmuxCmds set-window-option show[-options] showw show-window-options
 syn keyword tmuxCmds command-prompt setb set-buffer showb show-buffer lsb
 syn keyword tmuxCmds list-buffers deleteb delete-buffer lscm list-commands
-syn keyword tmuxCmds movew move-window select-prompt respawnw respawn-window
+syn keyword tmuxCmds movew move-window respawnw respawn-window
 syn keyword tmuxCmds source[-file] info server-info clock-mode lock[-server]
 syn keyword tmuxCmds saveb save-buffer downp down-pane killp
 syn keyword tmuxCmds kill-pane resizep resize-pane selectp select-pane swapp
@@ -42,7 +42,7 @@ syn keyword tmuxCmds display[-message] setenv set-environment showenv
 syn keyword tmuxCmds show-environment choose-client displayp display-panes
 syn keyword tmuxCmds run[-shell] lockc lock-client locks lock-session lsp
 syn keyword tmuxCmds list-panes pipep pipe-pane showmsgs show-messages capturep
-syn keyword tmuxCmds capture-pane joinp join-pane
+syn keyword tmuxCmds capture-pane joinp join-pane choose-buffer
 
 syn keyword tmuxOptsSet prefix status status-fg status-bg bell-action
 syn keyword tmuxOptsSet default-command history-limit status-left status-right
@@ -61,6 +61,7 @@ syn keyword tmuxOptsSet mouse-select-pane message-limit quiet escape-time
 syn keyword tmuxOptsSet pane-active-border-bg pane-active-border-fg
 syn keyword tmuxOptsSet pane-border-bg pane-border-fg
 syn keyword tmuxOptsSet display-panes-active-colour alternate-screen
+syn keyword tmuxOptsSet detach-on-destroy
 
 syn keyword tmuxOptsSetw monitor-activity aggressive-resize force-width
 syn keyword tmuxOptsSetw force-height remain-on-exit uft8 mode-fg mode-bg
