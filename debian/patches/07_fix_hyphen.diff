@@ -1,6 +1,46 @@
 # fixes lintian's complains about missing hyphens.
 --- a/tmux.1
 +++ b/tmux.1
+@@ -436,7 +436,7 @@
+ .Ql -
+ may be followed by an offset, for example:
+ .Bd -literal -offset indent
+-select-window -t:+2
++select-window \-t:+2
+ .Ed
+ .Pp
+ When dealing with a session that doesn't contain sequential window indexes,
+@@ -479,23 +479,23 @@
+ .Nm
+ commands include:
+ .Bd -literal -offset indent
+-refresh-client -t/dev/ttyp2
++refresh-client \-t/dev/ttyp2
+ 
+-rename-session -tfirst newname
++rename-session \-tfirst newname
+ 
+-set-window-option -t:0 monitor-activity on
++set-window-option \-t:0 monitor-activity on
+ 
+-new-window ; split-window -d
++new-window ; split-window \-d
+ .Ed
+ .Pp
+ Or from
+ .Xr sh 1 :
+ .Bd -literal -offset indent
+-$ tmux kill-window -t :1
++$ tmux kill-window \-t :1
+ 
+-$ tmux new-window \e; split-window -d
++$ tmux new-window \e; split-window \-d
+ 
+-$ tmux new-session -d 'vi /etc/passwd' \e; split-window -d \e; attach
++$ tmux new-session \-d 'vi /etc/passwd' \e; split-window \-d \e; attach
+ .Ed
+ .Sh CLIENTS AND SESSIONS
+ The
 @@ -931,7 +931,7 @@
  and the result executed as a command.
  If
@@ -28,6 +68,15 @@
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
+@@ -1168,7 +1168,7 @@
+ option only opens a new pipe if no previous pipe exists, allowing a pipe to
+ be toggled with a single key, for example:
+ .Bd -literal -offset indent
+-bind-key C-p pipe-pane -o 'cat >>~/output.#I-#P'
++bind-key C-p pipe-pane \-o 'cat >>~/output.#I-#P'
+ .Ed
+ .It Xo Ic previous-layout
+ .Op Fl t Ar target-window
 @@ -1895,7 +1895,7 @@
  Examples are:
  .Bd -literal -offset indent
@@ -46,6 +95,15 @@
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
+@@ -2487,7 +2487,7 @@
+ and the result executed as a command.
+ If
+ .Ar template
+-is not given, "paste-buffer -b '%%'" is used.
++is not given, "paste-buffer \-b '%%'" is used.
+ This command works only from inside
+ .Nm .
+ .It Ic clear-history Op Fl t Ar target-pane
 @@ -2671,29 +2671,29 @@
  .Pp
  Changing the default prefix key:
