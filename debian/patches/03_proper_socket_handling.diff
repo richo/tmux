@@ -1,34 +1,28 @@
 # setting /usr/bin/tmux with sgid and proper location of socket
-Index: tmux/GNUmakefile
-===================================================================
---- tmux.orig/GNUmakefile	2010-03-13 23:25:52.690727599 +0100
-+++ tmux/GNUmakefile	2010-03-13 23:25:52.702716773 +0100
-@@ -53,7 +53,7 @@
- 
+--- a/GNUmakefile
++++ b/GNUmakefile
+@@ -54,7 +54,7 @@
  PREFIX?= /usr/
- INSTALLDIR= install -d
--INSTALLBIN= install -g bin -o root -m 555
-+INSTALLBIN= install -g utmp -o root -m 2755
- INSTALLMAN= install -g bin -o root -m 444
+ INSTALL?= install
+ INSTALLDIR= $(INSTALL) -d
+-INSTALLBIN= $(INSTALL) -m 555
++INSTALLBIN= $(INSTALL) -g utmp -o root -m 2755
+ INSTALLMAN= $(INSTALL) -m 444
  
- SRCS= $(shell echo *.c|sed 's|osdep-[a-z0-9]*.c||g')
-Index: tmux/Makefile
-===================================================================
---- tmux.orig/Makefile	2010-03-13 23:25:52.690727599 +0100
-+++ tmux/Makefile	2010-03-13 23:25:52.702716773 +0100
-@@ -49,7 +49,7 @@
+ SRCS= $(shell echo *.c|LC_ALL=C sed 's|osdep-[a-z0-9]*.c||g')
+--- a/Makefile
++++ b/Makefile
+@@ -50,7 +50,7 @@
+ PREFIX?= /usr/
+ INSTALL?= install
+ INSTALLDIR= ${INSTALL} -d
+-INSTALLBIN= ${INSTALL} -m 555
++INSTALLBIN= $(INSTALL) -g utmp -o root -m 2755
+ INSTALLMAN= ${INSTALL} -m 444
  
- PREFIX?= /usr
- INSTALLDIR= install -d
--INSTALLBIN= install -g bin -o root -m 555
-+INSTALLBIN= install -g utmp -o root -m 2755
- INSTALLMAN= install -g bin -o root -m 444
- 
- SRCS!= echo *.c|sed 's|osdep-[a-z0-9]*.c||g'
-Index: tmux/compat.h
-===================================================================
---- tmux.orig/compat.h	2010-03-13 23:23:19.942723618 +0100
-+++ tmux/compat.h	2010-03-13 23:25:52.702716773 +0100
+ SRCS!= echo *.c|LC_ALL=C sed 's|osdep-[a-z0-9]*.c||g'
+--- a/compat.h
++++ b/compat.h
 @@ -25,7 +25,7 @@
  
  #ifndef HAVE_PATHS_H
@@ -38,11 +32,9 @@ Index: tmux/compat.h
  #define _PATH_DEVNULL	"/dev/null"
  #define _PATH_TTY	"/dev/tty"
  #define _PATH_DEV	"/dev/"
-Index: tmux/tmux.c
-===================================================================
---- tmux.orig/tmux.c	2010-03-13 23:23:19.930726062 +0100
-+++ tmux/tmux.c	2010-03-13 23:26:33.182216363 +0100
-@@ -189,7 +189,7 @@
+--- a/tmux.c
++++ b/tmux.c
+@@ -188,7 +188,7 @@
  	u_int		uid;
  
  	uid = getuid();

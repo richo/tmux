@@ -1,7 +1,7 @@
 # Harden write and chdir because of ignored return value
 --- a/tty.c
 +++ b/tty.c
-@@ -300,7 +300,8 @@
+@@ -321,7 +321,8 @@
  void
  tty_raw(struct tty *tty, const char *s)
  {
@@ -11,7 +11,7 @@
  }
  
  void
-@@ -333,7 +334,8 @@
+@@ -354,7 +355,8 @@
  	bufferevent_write(tty->event, s, strlen(s));
  
  	if (tty->log_fd != -1)
@@ -21,7 +21,7 @@
  }
  
  void
-@@ -359,7 +361,8 @@
+@@ -380,7 +382,8 @@
  	}
  
  	if (tty->log_fd != -1)
@@ -31,7 +31,7 @@
  }
  
  void
-@@ -370,7 +373,8 @@
+@@ -391,7 +394,8 @@
  	size = grid_utf8_size(gu);
  	bufferevent_write(tty->event, gu->data, size);
  	if (tty->log_fd != -1)
@@ -43,7 +43,7 @@
  
 --- a/window.c
 +++ b/window.c
-@@ -518,7 +518,9 @@
+@@ -560,7 +560,9 @@
  		return (-1);
  	case 0:
  		if (chdir(wp->cwd) != 0)
@@ -56,7 +56,7 @@
  			fatal("tcgetattr failed");
 --- a/client.c
 +++ b/client.c
-@@ -300,6 +300,7 @@
+@@ -292,6 +292,7 @@
  		datalen = imsg.hdr.len - IMSG_HEADER_SIZE;
  
  		log_debug("client got %d", imsg.hdr.type);
@@ -64,7 +64,7 @@
  		switch (imsg.hdr.type) {
  		case MSG_DETACH:
  			if (datalen != 0)
-@@ -347,7 +348,11 @@
+@@ -339,7 +340,11 @@
  			memcpy(&lockdata, imsg.data, sizeof lockdata);
  
  			lockdata.cmd[(sizeof lockdata.cmd) - 1] = '\0';

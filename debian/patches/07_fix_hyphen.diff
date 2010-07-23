@@ -1,41 +1,7 @@
 # fixes lintian's complains about missing hyphens.
-Index: tmux/tmux.1
-===================================================================
---- tmux.orig/tmux.1	2010-03-14 13:45:24.211534123 +0100
-+++ tmux/tmux.1	2010-03-14 13:50:29.608071268 +0100
-@@ -385,24 +385,24 @@
- .Nm
- commands include:
- .Bd -literal -offset indent
--refresh-client -t/dev/ttyp2
-+refresh-client \-t/dev/ttyp2
- 
--rename-session -tfirst newname
-+rename-session \-tfirst newname
- 
--set-window-option -t:0 monitor-activity on
-+set-window-option \-t:0 monitor-activity on
- 
--new-window ; split-window -d
-+new-window ; split-window \-d
- .Ed
- .Pp
- Or from
- .Xr sh 1 :
- .Pp
- .Bd -literal -offset indent
--$ tmux kill-window -t :1
-+$ tmux kill-window \-t :1
- 
--$ tmux new-window \\; split-window -d
-+$ tmux new-window \\; split-window \-d
- 
--$ tmux new-session -d 'vi /etc/passwd' \\; split-window -d \\; attach
-+$ tmux new-session \-d 'vi /etc/passwd' \\; split-window \-d \\; attach
- .Ed
- .Sh CLIENTS AND SESSIONS
- The
-@@ -807,7 +807,7 @@
+--- a/tmux.1
++++ b/tmux.1
+@@ -931,7 +931,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -44,7 +10,7 @@ Index: tmux/tmux.1
  This command works only from inside
  .Nm .
  .It Xo
-@@ -824,7 +824,7 @@
+@@ -948,7 +948,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -53,7 +19,7 @@ Index: tmux/tmux.1
  This command works only from inside
  .Nm .
  .It Xo
-@@ -841,7 +841,7 @@
+@@ -965,7 +965,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -62,16 +28,7 @@ Index: tmux/tmux.1
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
-@@ -1033,7 +1033,7 @@
- option only opens a new pipe if no previous pipe exists, allowing a pipe to
- be toggled with a single key, for example:
- .Bd -literal -offset indent
--bind-key C-p pipe-pane -o 'cat >>~/output'
-+bind-key C-p pipe-pane \-o 'cat >>~/output'
- .Ed
- .It Xo Ic previous-window
- .Op Fl a
-@@ -1728,7 +1728,7 @@
+@@ -1895,7 +1895,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -80,7 +37,7 @@ Index: tmux/tmux.1
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -1909,7 +1909,7 @@
+@@ -2076,7 +2076,7 @@
  .Ic rename-window .
  It may be switched off globally with:
  .Bd -literal -offset indent
@@ -89,7 +46,7 @@ Index: tmux/tmux.1
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2478,29 +2478,29 @@
+@@ -2671,29 +2671,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent

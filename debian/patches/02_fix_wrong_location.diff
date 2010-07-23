@@ -1,8 +1,6 @@
 # correct directory /usr/local 
-Index: tmux/GNUmakefile
-===================================================================
---- tmux.orig/GNUmakefile	2010-03-13 23:23:20.798717192 +0100
-+++ tmux/GNUmakefile	2010-03-13 23:26:35.902223278 +0100
+--- a/GNUmakefile
++++ b/GNUmakefile
 @@ -23,7 +23,7 @@
  
  CC?= cc
@@ -18,10 +16,10 @@ Index: tmux/GNUmakefile
  
 -PREFIX?= /usr/local
 +PREFIX?= /usr/
- INSTALLDIR= install -d
- INSTALLBIN= install -g bin -o root -m 555
- INSTALLMAN= install -g bin -o root -m 444
-@@ -80,7 +80,7 @@
+ INSTALL?= install
+ INSTALLDIR= $(INSTALL) -d
+ INSTALLBIN= $(INSTALL) -m 555
+@@ -81,7 +81,7 @@
  install:	all
  		$(INSTALLDIR) $(DESTDIR)$(PREFIX)/bin
  		$(INSTALLBIN) tmux $(DESTDIR)$(PREFIX)/bin/tmux
@@ -31,10 +29,8 @@ Index: tmux/GNUmakefile
 +		$(INSTALLMAN) tmux.1 $(DESTDIR)$(PREFIX)share/man/man1/tmux.1
  
  -include .depend
-Index: tmux/Makefile
-===================================================================
---- tmux.orig/Makefile	2010-03-13 23:23:20.790724595 +0100
-+++ tmux/Makefile	2010-03-13 23:26:35.886216224 +0100
+--- a/Makefile
++++ b/Makefile
 @@ -24,7 +24,7 @@
  
  CC?= cc
@@ -49,11 +45,11 @@ Index: tmux/Makefile
  .endif
  
 -PREFIX?= /usr/local
-+PREFIX?= /usr
- INSTALLDIR= install -d
- INSTALLBIN= install -g bin -o root -m 555
- INSTALLMAN= install -g bin -o root -m 444
-@@ -79,5 +79,5 @@
++PREFIX?= /usr/
+ INSTALL?= install
+ INSTALLDIR= ${INSTALL} -d
+ INSTALLBIN= ${INSTALL} -m 555
+@@ -80,5 +80,5 @@
  install:	all
  		${INSTALLDIR} ${DESTDIR}${PREFIX}/bin
  		${INSTALLBIN} tmux ${DESTDIR}${PREFIX}/bin/

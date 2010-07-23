@@ -1,9 +1,7 @@
 # using setresgid() for safely dropping utmp group membership.
-Index: tmux/tmux.c
-===================================================================
---- tmux.orig/tmux.c	2010-03-13 23:25:52.702716773 +0100
-+++ tmux/tmux.c	2010-03-13 23:25:52.714716424 +0100
-@@ -186,9 +186,11 @@
+--- a/tmux.c
++++ b/tmux.c
+@@ -185,9 +185,11 @@
  {
  	char		base[MAXPATHLEN], *path;
  	struct stat	sb;
@@ -16,7 +14,7 @@ Index: tmux/tmux.c
  	xsnprintf(base, MAXPATHLEN, "%s/%s/%s-%d", _PATH_VARRUN, __progname, __progname, uid);
  
  	if (mkdir(base, S_IRWXU) != 0 && errno != EEXIST)
-@@ -204,6 +206,9 @@
+@@ -203,6 +205,9 @@
  		errno = EACCES;
  		return (NULL);
  	}
