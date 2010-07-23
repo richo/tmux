@@ -28,6 +28,8 @@ Copyright:
 	strlcpy.c
  Copyright (c) 2004 Ted Unangst and Todd Miller on
 	strtonum.c
+ Copyright (c) 2010 Romain Francoise <rfrancoise@debian.org> on
+	signal.c
 
 License:
  Permission to use, copy, modify, and distribute this software for any
@@ -141,8 +143,6 @@ Copyright:
   Copyright (C) 2001-2003 Adam Lazur <zal@debian.org>
   Copyright (C) 2007 Jan Christoph Nordholz <hesso@pool.math.tu-berlin.de>
 
-File: debian/patches/08_fix_colours.diff
-  Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
-File: debian/patches/12_ld_as_needed.diff
-  Copyright (c) 2009 Pierre Habouzit <madcoder@debian.org>
-	
+Files: debian/patches/{13_server-client.c.diff,14_server-window.c.diff,15_window-copy.c.diff}
+Copyright:
+ Copyright (c) 2007-2010 Nicholas Marriott <nicm@users.sourceforge.net>

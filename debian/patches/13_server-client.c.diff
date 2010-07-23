@@ -1,0 +1,13 @@
+Include cherry-picked patches from upstream to fix stdout.
+
+--- a/server-client.c
++++ b/server-client.c
+@@ -694,7 +694,7 @@
+ 	vfprintf(ctx->cmdclient->stdout_file, fmt, ap);
+ 	va_end(ap);
+ 
+-	fputc('\n', ctx->cmdclient->stderr_file);
++	fputc('\n', ctx->cmdclient->stdout_file);
+ 	fflush(ctx->cmdclient->stdout_file);
+ }
+ 

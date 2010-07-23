@@ -4,4 +4,6 @@
 05_build_kfreebsd_hurd.diff
 06_hardening_write_return.diff
 07_fix_hyphen.diff
-12_ld_as_needed.diff
+13_server-client.c.diff
+14_server-window.c.diff
+15_window-copy.c.diff
