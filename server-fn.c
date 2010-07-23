@@ -1,4 +1,4 @@
-/* $Id: server-fn.c,v 1.102 2010/01/25 17:13:43 tcunha Exp $ */
+/* $Id: server-fn.c,v 1.108 2010/07/02 02:45:52 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -24,7 +24,8 @@
 
 #include "tmux.h"
 
-void	server_callback_identify(int, short, void *);
+struct session *server_next_session(struct session *);
+void		server_callback_identify(int, short, void *);
 
 void
 server_fill_environ(struct session *s, struct environ *env)
@@ -40,15 +41,6 @@ server_fill_environ(struct session *s, struct environ *env)
 
 	term = options_get_string(&s->options, "default-terminal");
 	environ_set(env, "TERM", term);
-}
-
-void
-server_write_error(struct client *c, const char *msg)
-{
-	struct msg_print_data	printdata;
-
-	strlcpy(printdata.msg, msg, sizeof printdata.msg);
-	server_write_client(c, MSG_ERROR, &printdata, sizeof printdata);
 }
 
 void
@@ -193,7 +185,7 @@ server_status_window(struct window *w)
 
 	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
 		s = ARRAY_ITEM(&sessions, i);
-		if (s != NULL && session_has(s, w))
+		if (s != NULL && session_has(s, w) != NULL)
 			server_status_session(s);
 	}
 }
@@ -258,7 +250,7 @@ server_kill_window(struct window *w)
 
 	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
 		s = ARRAY_ITEM(&sessions, i);
-		if (s == NULL || !session_has(s, w))
+		if (s == NULL || session_has(s, w) == NULL)
 			continue;
 		while ((wl = winlink_find_by_window(&s->windows, w)) != NULL) {
 			if (session_detach(s, wl)) {
@@ -295,7 +287,7 @@ server_link_window(struct session *src, struct winlink *srcwl,
 			 * Can't use session_detach as it will destroy session
 			 * if this makes it empty.
 			 */
-			session_alert_cancel(dst, dstwl);
+			dstwl->flags &= ~WINLINK_ALERTFLAGS;
 			winlink_stack_remove(&dst->lastw, dstwl);
 			winlink_remove(&dst->windows, dstwl);
 
@@ -334,9 +326,11 @@ server_destroy_pane(struct window_pane *wp)
 {
 	struct window	*w = wp->window;
 
-	close(wp->fd);
-	bufferevent_free(wp->event);
-	wp->fd = -1;
+	if (wp->fd != -1) {
+		close(wp->fd);
+		bufferevent_free(wp->event);
+		wp->fd = -1;
+	}
 
 	if (options_get_number(&w->options, "remain-on-exit"))
 		return;
@@ -365,19 +359,49 @@ server_destroy_session_group(struct session *s)
 	}
 }
 
+struct session *
+server_next_session(struct session *s)
+{
+	struct session *s_loop, *s_out;
+	u_int		i;
+
+	s_out = NULL;
+	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
+		s_loop = ARRAY_ITEM(&sessions, i);
+		if (s_loop == s)
+			continue;
+		if (s_out == NULL ||
+		    timercmp(&s_loop->activity_time, &s_out->activity_time, <))
+			s_out = s_loop;
+	}
+	return (s_out);
+}
+
 void
 server_destroy_session(struct session *s)
 {
 	struct client	*c;
+	struct session	*s_new;
 	u_int		 i;
+
+	if (!options_get_number(&s->options, "detach-on-destroy"))
+		s_new = server_next_session(s);
+	else
+		s_new = NULL;
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
 		c = ARRAY_ITEM(&clients, i);
 		if (c == NULL || c->session != s)
 			continue;
-		c->session = NULL;
-		server_write_client(c, MSG_EXIT, NULL, 0);
+		if (s_new == NULL) {
+			c->session = NULL;
+			server_write_client(c, MSG_EXIT, NULL, 0);
+		} else {
+			c->session = s_new;
+			server_redraw_client(c);
+		}
 	}
+	recalculate_sizes();
 }
 
 void

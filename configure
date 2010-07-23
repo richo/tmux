@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: configure,v 1.47 2009/12/11 20:08:18 nicm Exp $
+# $Id: configure,v 1.53 2010/06/06 13:00:47 tcunha Exp $
 #
 # Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
 #
@@ -67,9 +67,11 @@ case $TMUX_PLATFORM in
 #define HAVE_FGETLN
 #define HAVE_FORKPTY
 #define HAVE_GETOPT
+#define HAVE_IMSG
 #define HAVE_PATHS_H
 #define HAVE_PROGNAME
 #define HAVE_QUEUE_H
+#define HAVE_SETENV
 #define HAVE_SETPROCTITLE
 #define HAVE_STRCASESTR
 #define HAVE_STRLCAT
@@ -83,9 +85,7 @@ case $TMUX_PLATFORM in
 EOF
 	cat <<EOF >>$CONFIG_MK
 LIBS+= -lcurses -lutil -levent
-SRCS+= osdep-openbsd.c \
-	compat/imsg-buffer.c \
-	compat/imsg.c
+SRCS+= osdep-openbsd.c
 EOF
 	;;
 # ------------------------------------------------------------------------------
@@ -98,13 +98,14 @@ EOF
 #define HAVE_PATHS_H
 #define HAVE_PROGNAME
 #define HAVE_PTY_H
+#define HAVE_SETENV
 #define HAVE_STRCASESTR
 #define HAVE_STRSEP
 #define HAVE_U_INT
 EOF
 	cat <<EOF >>$CONFIG_MK
 CFLAGS+= -std=c99 -D_GNU_SOURCE -D_POSIX_SOURCE
-LIBS+= -lncurses -lcrypt -lutil -levent
+LIBS+= -lncurses -lcrypt -lutil -levent -lrt
 SRCS+= osdep-linux.c \
 	compat/fgetln.c \
 	compat/strlcat.c \
@@ -122,6 +123,7 @@ EOF
 	cat <<EOF >>$CONFIG_H
 #define HAVE_BZERO
 #define HAVE_DAEMON
+#define HAVE_SETENV
 EOF
 	cat <<EOF >>$CONFIG_MK
 LIBS+= -lcurses -levent
@@ -158,6 +160,7 @@ SRCS+= osdep-sunos.c \
 	compat/fgetln.c \
 	compat/forkpty-sunos.c \
 	compat/getopt.c \
+	compat/setenv.c \
 	compat/strcasestr.c \
 	compat/strsep.c \
 	compat/strtonum.c \
@@ -181,6 +184,7 @@ EOF
 #define HAVE_GETOPT
 #define HAVE_PATHS_H
 #define HAVE_PROGNAME
+#define HAVE_SETENV
 #define HAVE_STRCASESTR
 #define HAVE_STRLCAT
 #define HAVE_STRLCPY
@@ -204,6 +208,7 @@ EOF
     FreeBSD|DragonFly)
 	cat <<EOF >>$CONFIG_H
 #define HAVE_ASPRINTF
+#define HAVE_BROKEN_KQUEUE
 #define HAVE_BZERO
 #define HAVE_DAEMON
 #define HAVE_FGETLN
@@ -212,6 +217,7 @@ EOF
 #define HAVE_LIBUTIL_H
 #define HAVE_PATHS_H
 #define HAVE_PROGNAME
+#define HAVE_SETENV
 #define HAVE_SETPROCTITLE
 #define HAVE_STRCASESTR
 #define HAVE_STRLCAT
@@ -233,7 +239,6 @@ EOF
     NetBSD)
 	cat <<EOF >>$CONFIG_H
 #define HAVE_ASPRINTF
-#define HAVE_BROKEN_CURSES_H
 #define HAVE_BZERO
 #define HAVE_DAEMON
 #define HAVE_FGETLN
@@ -242,6 +247,7 @@ EOF
 #define HAVE_PATHS_H
 #define HAVE_PROGNAME
 #define HAVE_SETPROCTITLE
+#define HAVE_SETENV
 #define HAVE_STRCASESTR
 #define HAVE_STRLCAT
 #define HAVE_STRLCPY
@@ -249,10 +255,23 @@ EOF
 #define HAVE_UTIL_H
 #define HAVE_U_INT
 EOF
-	cat <<EOF >>$CONFIG_MK
+	# NetBSD-6 has its own terminfo implementation
+	if test -f /lib/libterminfo.so; then
+	    cat <<EOF >>$CONFIG_MK
+LIBS+= -lterminfo
+EOF
+	else
+	    cat <<EOF >>$CONFIG_MK
 CPPFLAGS+= -I/usr/pkg/include
 LDFLAGS+= -L/usr/pkg/lib
-LIBS+= -lncurses -lcrypt -lutil -levent
+LIBS+= -lncurses
+EOF
+	    cat <<EOF >>$CONFIG_H
+#define HAVE_BROKEN_CURSES_H
+EOF
+	fi
+	cat <<EOF >>$CONFIG_MK
+LIBS+= -lcrypt -lutil -levent
 SRCS+= osdep-netbsd.c \
 	compat/strtonum.c \
 	compat/vis.c \

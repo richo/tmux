@@ -1,4 +1,4 @@
-/* $Id: compat.h,v 1.20 2009/11/08 22:51:34 tcunha Exp $ */
+/* $Id: compat.h,v 1.25 2010/06/06 13:00:46 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -42,7 +42,7 @@ typedef uint64_t u_int64_t;
 #else
 #include "compat/tree.h"
 #endif
- 
+
 #ifdef HAVE_BITSTRING_H
 #include <bitstring.h>
 #else
@@ -81,15 +81,34 @@ typedef uint64_t u_int64_t;
 
 #ifndef HAVE_IMSG
 #include "compat/imsg.h"
+#else
+#include <imsg.h>
 #endif
 
 #ifdef HAVE_BROKEN_CMSG_FIRSTHDR
-/* Broken on OS X. */
+/* CMSG_FIRSTHDR broken on OS X. */
 #undef CMSG_FIRSTHDR
 #define CMSG_FIRSTHDR(mhdr) \
-        ((mhdr)->msg_controllen >= sizeof(struct cmsghdr) ? \
-	    (struct cmsghdr *)(mhdr)->msg_control : \
+	((mhdr)->msg_controllen >= sizeof(struct cmsghdr) ? \
+	    (struct cmsghdr *)(mhdr)->msg_control :	    \
 	    (struct cmsghdr *)NULL)
+#endif
+
+/* CMSG_ALIGN, CMSG_SPACE, CMSG_LEN missing from Solaris 9. */
+#ifndef CMSG_ALIGN
+#ifdef __sun
+#define CMSG_ALIGN _CMSG_DATA_ALIGN
+#else
+#define CMSG_ALIGN(len) (((len) + sizeof(long) - 1) & ~(sizeof(long) - 1))
+#endif
+#endif
+
+#ifndef CMSG_SPACE
+#define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#endif
+
+#ifndef CMSG_LEN
+#define CMSG_LEN(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
 #endif
 
 #ifndef INFTIM
@@ -135,7 +154,7 @@ typedef uint64_t u_int64_t;
 #endif
 
 #ifndef HAVE_BZERO
-#define bzero(buf, len) memset((buf), 0, (len));
+#define bzero(buf, len) memset(buf, 0, len);
 #endif
 
 #ifndef HAVE_STRCASESTR
@@ -175,13 +194,19 @@ pid_t		 forkpty(int *, char *, struct termios *, struct winsize *);
 
 #ifndef HAVE_ASPRINTF
 /* asprintf.c */
-int	asprintf(char **, const char *, ...);
-int	vasprintf(char **, const char *, va_list);
+int		 asprintf(char **, const char *, ...);
+int		 vasprintf(char **, const char *, va_list);
 #endif
 
 #ifndef HAVE_FGETLN
 /* fgetln.c */
-char   *fgetln(FILE *, size_t *);
+char		*fgetln(FILE *, size_t *);
+#endif
+
+#ifndef HAVE_SETENV
+/* setenv.c */
+int		 setenv(const char *, const char *, int);
+int		 unsetenv(const char *);
 #endif
 
 #ifndef HAVE_GETOPT

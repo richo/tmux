@@ -1,4 +1,4 @@
-/* $Id: tmux.c,v 1.204 2010/02/26 13:31:39 tcunha Exp $ */
+/* $Id: tmux.c,v 1.214 2010/07/17 14:36:41 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -18,6 +18,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include <errno.h>
 #include <event.h>
@@ -40,6 +41,8 @@ struct options	 global_s_options;	/* session options */
 struct options	 global_w_options;	/* window options */
 struct environ	 global_environ;
 
+struct event_base *ev_base;
+
 int		 debug_level;
 time_t		 start_time;
 char		*socket_path;
@@ -57,11 +60,7 @@ char 		*makesockpath(const char *);
 __dead void	 shell_exec(const char *, const char *);
 
 struct imsgbuf	*main_ibuf;
-struct event	 main_ev_sigterm;
-int	         main_exitval;
 
-void		 main_set_signals(void);
-void		 main_clear_signals(void);
 void		 main_signal(int, short, unused void *);
 void		 main_callback(int, short, void *);
 void		 main_dispatch(const char *);
@@ -242,7 +241,7 @@ main(int argc, char **argv)
 	struct env_data		 envdata;
 	struct msg_command_data	 cmddata;
 	char			*s, *shellcmd, *path, *label, *home, *cause;
-	char			 cwd[MAXPATHLEN], **var;
+	char		       **var;
 	void			*buf;
 	size_t			 len;
 	int	 		 opt, flags, quiet = 0, cmdflags = 0;
@@ -342,10 +341,12 @@ main(int argc, char **argv)
 	options_set_number(so, "bell-action", BELL_ANY);
 	options_set_number(so, "buffer-limit", 9);
 	options_set_string(so, "default-command", "%s", "");
+	options_set_string(so, "default-path", "%s", "");
 	options_set_string(so, "default-shell", "%s", getshell());
 	options_set_string(so, "default-terminal", "screen");
-	options_set_number(so, "display-panes-colour", 4);
+	options_set_number(so, "detach-on-destroy", 1);
 	options_set_number(so, "display-panes-active-colour", 1);
+	options_set_number(so, "display-panes-colour", 4);
 	options_set_number(so, "display-panes-time", 1000);
 	options_set_number(so, "display-time", 750);
 	options_set_number(so, "history-limit", 2000);
@@ -357,8 +358,8 @@ main(int argc, char **argv)
 	options_set_number(so, "message-fg", 0);
 	options_set_number(so, "message-limit", 20);
 	options_set_number(so, "mouse-select-pane", 0);
-	options_set_number(so, "pane-active-border-bg", 2);
-	options_set_number(so, "pane-active-border-fg", 8);
+	options_set_number(so, "pane-active-border-bg", 8);
+	options_set_number(so, "pane-active-border-fg", 2);
 	options_set_number(so, "pane-border-bg", 8);
 	options_set_number(so, "pane-border-fg", 8);
 	options_set_number(so, "repeat-time", 500);
@@ -419,6 +420,9 @@ main(int argc, char **argv)
 	options_set_number(wo, "window-status-current-bg", 8);
 	options_set_number(wo, "window-status-current-fg", 8);
 	options_set_number(wo, "window-status-fg", 8);
+	options_set_number(wo, "window-status-alert-attr", GRID_ATTR_REVERSE);
+	options_set_number(wo, "window-status-alert-bg", 8);
+	options_set_number(wo, "window-status-alert-fg", 8);
 	options_set_string(wo, "window-status-format", "#I:#W#F");
 	options_set_string(wo, "window-status-current-format", "#I:#W#F");
 	options_set_string(wo, "word-separators", " -_@");
@@ -433,15 +437,6 @@ main(int argc, char **argv)
 		options_set_number(so, "status-utf8", 0);
 		options_set_number(wo, "utf8", 0);
 	}
-
-	if (getcwd(cwd, sizeof cwd) == NULL) {
-		pw = getpwuid(getuid());
-		if (pw->pw_dir != NULL && *pw->pw_dir != '\0')
-			strlcpy(cwd, pw->pw_dir, sizeof cwd);
-		else
-			strlcpy(cwd, "/", sizeof cwd);
-	}
-	options_set_string(so, "default-path", "%s", cwd);
 
 	if (cfg_file == NULL) {
 		home = getenv("HOME");
@@ -517,7 +512,7 @@ main(int argc, char **argv)
 			exit(1);
 		}
 		cmdflags &= ~CMD_STARTSERVER;
-		TAILQ_FOREACH(cmd, cmdlist, qentry) {
+		TAILQ_FOREACH(cmd, &cmdlist->list, qentry) {
 			if (cmd->entry->flags & CMD_STARTSERVER)
 				cmdflags |= CMD_STARTSERVER;
 			if (cmd->entry->flags & CMD_SENDENVIRON)
@@ -540,10 +535,6 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	if ((main_ibuf = client_init(path, cmdflags, flags)) == NULL)
-		exit(1);
-	xfree(path);
-
 #ifdef HAVE_BROKEN_KQUEUE
 	if (setenv("EVENT_NOKQUEUE", "1", 1) != 0)
 		fatal("setenv failed");
@@ -552,85 +543,46 @@ main(int argc, char **argv)
 	if (setenv("EVENT_NOPOLL", "1", 1) != 0)
 		fatal("setenv failed");
 #endif
-	event_init();
+	ev_base = event_init();
 #ifdef HAVE_BROKEN_KQUEUE
 	unsetenv("EVENT_NOKQUEUE");
 #endif
 #ifdef HAVE_BROKEN_POLL
 	unsetenv("EVENT_NOPOLL");
 #endif
+	set_signals(main_signal);
+
+	/* Initialise the client socket/start the server. */
+	if ((main_ibuf = client_init(path, cmdflags, flags)) == NULL)
+		exit(1);
+	xfree(path);
 
 	imsg_compose(main_ibuf, msg, PROTOCOL_VERSION, -1, -1, buf, len);
-
-	main_set_signals();
 
 	events = EV_READ;
 	if (main_ibuf->w.queued > 0)
 		events |= EV_WRITE;
 	event_once(main_ibuf->fd, events, main_callback, shellcmd, NULL);
 
-	main_exitval = 0;
 	event_dispatch();
 
-	main_clear_signals();
+	clear_signals();
 
 	client_main();	/* doesn't return */
-}
-
-void
-main_set_signals(void)
-{
-	struct sigaction	sigact;
-
-	memset(&sigact, 0, sizeof sigact);
-	sigemptyset(&sigact.sa_mask);
-	sigact.sa_flags = SA_RESTART;
-	sigact.sa_handler = SIG_IGN;
-	if (sigaction(SIGINT, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGPIPE, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGUSR1, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGUSR2, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGTSTP, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-
-	signal_set(&main_ev_sigterm, SIGTERM, main_signal, NULL);
-	signal_add(&main_ev_sigterm, NULL);
-}
-
-void
-main_clear_signals(void)
-{
-	struct sigaction	sigact;
-
-	memset(&sigact, 0, sizeof sigact);
-	sigemptyset(&sigact.sa_mask);
-	sigact.sa_flags = SA_RESTART;
-	sigact.sa_handler = SIG_DFL;
-	if (sigaction(SIGINT, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGPIPE, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGUSR1, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGUSR2, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-	if (sigaction(SIGTSTP, &sigact, NULL) != 0)
-		fatal("sigaction failed");
-
-	event_del(&main_ev_sigterm);
 }
 
 /* ARGSUSED */
 void
 main_signal(int sig, unused short events, unused void *data)
 {
+	int	status;
+
 	switch (sig) {
 	case SIGTERM:
 		exit(1);
+	case SIGCHLD:
+		waitpid(WAIT_ANY, &status, WNOHANG);
+		break;
 	}
 }
 
@@ -659,8 +611,8 @@ main_dispatch(const char *shellcmd)
 {
 	struct imsg		imsg;
 	ssize_t			n, datalen;
-	struct msg_print_data	printdata;
 	struct msg_shell_data	shelldata;
+	struct msg_exit_data	exitdata;
 
 	if ((n = imsg_read(main_ibuf)) == -1 || n == 0)
 		fatalx("imsg_read failed");
@@ -675,21 +627,13 @@ main_dispatch(const char *shellcmd)
 		switch (imsg.hdr.type) {
 		case MSG_EXIT:
 		case MSG_SHUTDOWN:
-			if (datalen != 0)
-				fatalx("bad MSG_EXIT size");
-
-			exit(main_exitval);
-		case MSG_ERROR:
-		case MSG_PRINT:
-			if (datalen != sizeof printdata)
-				fatalx("bad MSG_PRINT size");
-			memcpy(&printdata, imsg.data, sizeof printdata);
-			printdata.msg[(sizeof printdata.msg) - 1] = '\0';
-
-			log_info("%s", printdata.msg);
-			if (imsg.hdr.type == MSG_ERROR)
-				main_exitval = 1;
-			break;
+			if (datalen != sizeof exitdata) {
+				if (datalen != 0)
+					fatalx("bad MSG_EXIT size");
+				exit(0);
+			}
+			memcpy(&exitdata, imsg.data, sizeof exitdata);
+			exit(exitdata.retcode);
 		case MSG_READY:
 			if (datalen != 0)
 				fatalx("bad MSG_READY size");
@@ -709,7 +653,7 @@ main_dispatch(const char *shellcmd)
 			memcpy(&shelldata, imsg.data, sizeof shelldata);
 			shelldata.shell[(sizeof shelldata.shell) - 1] = '\0';
 
-			main_clear_signals();
+			clear_signals();
 
 			shell_exec(shelldata.shell, shellcmd);
 		default:

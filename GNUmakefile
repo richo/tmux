@@ -1,4 +1,4 @@
-# $Id: GNUmakefile,v 1.122 2010/03/10 15:15:33 tcunha Exp $
+# $Id: GNUmakefile,v 1.128 2010/07/18 13:36:52 tcunha Exp $
 #
 # Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
 #
@@ -17,7 +17,7 @@
 
 .PHONY: clean
 
-VERSION= 1.2
+VERSION= 1.3
 
 #FDEBUG= 1
 
@@ -28,7 +28,7 @@ LIBS+=
 
 # Sun CC 
 ifneq ($(shell ($(CC) -V 2>&1|awk '/Sun C/' || true)), )
-	CFLAGS+=-erroff=E_EMPTY_DECLARATION
+	CFLAGS+= -erroff=E_EMPTY_DECLARATION
 	FDEBUG=
 endif
 
@@ -52,11 +52,12 @@ endif
 endif
 
 PREFIX?= /usr/local
-INSTALLDIR= install -d
-INSTALLBIN= install -g bin -o root -m 555
-INSTALLMAN= install -g bin -o root -m 444
+INSTALL?= install
+INSTALLDIR= $(INSTALL) -d
+INSTALLBIN= $(INSTALL) -m 555
+INSTALLMAN= $(INSTALL) -m 444
 
-SRCS= $(shell echo *.c|sed 's|osdep-[a-z0-9]*.c||g')
+SRCS= $(shell echo *.c|LC_ALL=C sed 's|osdep-[a-z0-9]*.c||g')
 include config.mk
 OBJS= $(patsubst %.c,%.o,$(SRCS))
 

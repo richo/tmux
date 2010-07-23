@@ -1,4 +1,4 @@
-/* $Id: status.c,v 1.144 2010/03/10 13:41:13 nicm Exp $ */
+/* $Id: status.c,v 1.149 2010/06/22 23:26:18 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -35,7 +35,6 @@ char   *status_redraw_get_right(
 	    struct client *, time_t, int, struct grid_cell *, size_t *);
 char   *status_job(struct client *, char **);
 void	status_job_callback(struct job *);
-size_t	status_width(struct client *, struct winlink *, time_t);
 char   *status_print(
 	    struct client *, struct winlink *, time_t, struct grid_cell *);
 void	status_replace1(struct client *,
@@ -249,25 +248,15 @@ status_redraw(struct client *c)
 	 */
 	offset = 0;
 	RB_FOREACH(wl, winlinks, &s->windows) {
-		if (larrow == 1 && offset < wlstart) {
-			if (session_alert_has(s, wl, WINDOW_ACTIVITY))
-				larrow = -1;
-			else if (session_alert_has(s, wl, WINDOW_BELL))
-				larrow = -1;
-			else if (session_alert_has(s, wl, WINDOW_CONTENT))
-				larrow = -1;
-		}
+		if (wl->flags & WINLINK_ALERTFLAGS &&
+		    larrow == 1 && offset < wlstart)
+			larrow = -1;
 
 		offset += wl->status_width;
 
-		if (rarrow == 1 && offset > wlstart + wlwidth) {
-			if (session_alert_has(s, wl, WINDOW_ACTIVITY))
-				rarrow = -1;
-			else if (session_alert_has(s, wl, WINDOW_BELL))
-				rarrow = -1;
-			else if (session_alert_has(s, wl, WINDOW_CONTENT))
-				rarrow = -1;
-		}
+		if (wl->flags & WINLINK_ALERTFLAGS &&
+		    rarrow == 1 && offset > wlstart + wlwidth)
+			rarrow = -1;
 	}
 
 draw:
@@ -400,11 +389,11 @@ status_replace1(struct client *c,struct winlink *wl,
 		goto do_replace;
 	case 'F':
 		tmp[0] = ' ';
-		if (session_alert_has(s, wl, WINDOW_CONTENT))
+		if (wl->flags & WINLINK_CONTENT)
 			tmp[0] = '+';
-		else if (session_alert_has(s, wl, WINDOW_BELL))
+		else if (wl->flags & WINLINK_BELL)
 			tmp[0] = '!';
-		else if (session_alert_has(s, wl, WINDOW_ACTIVITY))
+		else if (wl->flags & WINLINK_ACTIVITY)
 			tmp[0] = '#';
 		else if (wl == s->curw)
 			tmp[0] = '*';
@@ -560,30 +549,6 @@ status_job_callback(struct job *job)
 		job->data = xstrdup(line);
 }
 
-/* Calculate winlink status line entry width. */
-size_t
-status_width(struct client *c, struct winlink *wl, time_t t)
-{
-	struct options	*oo = &wl->window->options;
-	struct session	*s = c->session;
-	const char	*fmt;
-	char		*text;
-	size_t		 size;
-	int		 utf8flag;
-
-	utf8flag = options_get_number(&s->options, "status-utf8");
-
-	fmt = options_get_string(&wl->window->options, "window-status-format");
-	if (wl == s->curw)
-		fmt = options_get_string(oo, "window-status-current-format");
-
-	text = status_replace(c, wl, fmt, t, 1);
-	size = screen_write_cstrlen(utf8flag, "%s", text);
-	xfree(text);
-
-	return (size);
-}
-
 /* Return winlink status line entry and adjust gc as necessary. */
 char *
 status_print(
@@ -618,10 +583,17 @@ status_print(
 		fmt = options_get_string(oo, "window-status-current-format");
 	}
 
-	if (session_alert_has(s, wl, WINDOW_ACTIVITY) ||
-	    session_alert_has(s, wl, WINDOW_BELL) ||
-	    session_alert_has(s, wl, WINDOW_CONTENT))
-		gc->attr ^= GRID_ATTR_REVERSE;
+	if (wl->flags & WINLINK_ALERTFLAGS) {
+		fg = options_get_number(oo, "window-status-alert-fg");
+		if (fg != 8)
+			colour_set_fg(gc, fg);
+		bg = options_get_number(oo, "window-status-alert-bg");
+		if (bg != 8)
+			colour_set_bg(gc, bg);
+		attr = options_get_number(oo, "window-status-alert-attr");
+		if (attr != 0)
+			gc->attr = attr;
+	}
 
 	text = status_replace(c, wl, fmt, t, 1);
 	return (text);
@@ -1071,7 +1043,7 @@ status_prompt_key(struct client *c, int key)
 			status_prompt_clear(c);
 		break;
 	case MODEKEY_OTHER:
-		if (key < 32 || key == 127)
+		if ((key & 0xff00) != 0 || key < 32 || key == 127)
 			break;
 		c->prompt_buffer = xrealloc(c->prompt_buffer, 1, size + 2);
 
