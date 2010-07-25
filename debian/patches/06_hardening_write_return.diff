@@ -77,3 +77,15 @@
  			client_write_server(MSG_UNLOCK, NULL, 0);
  			break;
  		default:
+--- a/input.c
++++ b/input.c
+@@ -793,7 +793,8 @@
+ 	char   *reply;
+ 
+ 	va_start(ap, fmt);
+-	vasprintf(&reply, fmt, ap);
++	if (vasprintf(&reply, fmt, ap) != 0)
++		fatal("unable to allocate string!");
+ 	va_end(ap);
+ 
+ 	bufferevent_write(ictx->wp->event, reply, strlen(reply));
