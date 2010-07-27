@@ -84,7 +84,7 @@
  
  	va_start(ap, fmt);
 -	vasprintf(&reply, fmt, ap);
-+	if (vasprintf(&reply, fmt, ap) != -1)
++	if (vasprintf(&reply, fmt, ap) == -1)
 +		fatal("unable to allocate string!");
  	va_end(ap);
  
