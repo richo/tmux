@@ -73,7 +73,7 @@
 +			if(rc == 127)
 +				fatal("lock command could not be executed!");
 +			if(rc == -1)
-+				fatal("lock command process could not created!");
++				fatal("lock command process could not be created!");
  			client_write_server(MSG_UNLOCK, NULL, 0);
  			break;
  		default:
