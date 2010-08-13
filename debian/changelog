@@ -3,6 +3,7 @@ tmux (1.3-2) UNRELEASED; urgency=low
   [ Karl Ferdinand Ebert ]
   * Update 06_hardening_write_return.diff.
   * Fix FTBFS on hurd-i386, MAXHOSTNAMELEN isn't defined there.
+  * Bump to standard version 3.9.1 (no changes needed).
 
   [ Romain Francoise ]
   * Combine upstream patches in a single 99_upstream.diff file.

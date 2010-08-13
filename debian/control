@@ -5,7 +5,7 @@ Maintainer: Karl Ferdinand Ebert <kfebert@gmail.com>
 Uploaders: Romain Francoise <rfrancoise@debian.org>
 Build-Depends: debhelper (>= 7.0.50~), libncurses5-dev, libevent-dev,
                hardening-includes
-Standards-Version: 3.9.0
+Standards-Version: 3.9.1
 Homepage: http://tmux.sourceforge.net/
 Vcs-Browser: http://git.debian.org/?p=collab-maint/tmux.git
 Vcs-Git: git://git.debian.org/collab-maint/tmux.git
