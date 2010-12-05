@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Karl Ferdinand Ebert <kfebert@gmail.com>
 Uploaders: Romain Francoise <rfrancoise@debian.org>
-Build-Depends: debhelper (>= 7.0.50~), libncurses5-dev, libevent-dev,
+Build-Depends: debhelper (>= 7.0.50~), libncurses5-dev, libevent-dev (>> 1.4),
                hardening-includes
 Standards-Version: 3.9.1
 Homepage: http://tmux.sourceforge.net/
