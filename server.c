@@ -1,4 +1,4 @@
-/* $Id: server.c,v 1.242 2010/06/22 23:21:39 tcunha Exp $ */
+/* $Id: server.c,v 1.249 2010/12/22 15:36:44 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -97,8 +97,6 @@ server_create_socket(void)
 		fatal("fcntl failed");
 	if (fcntl(fd, F_SETFL, mode|O_NONBLOCK) == -1)
 		fatal("fcntl failed");
-	if (fcntl(fd, F_SETFD, FD_CLOEXEC) == -1)
-		fatal("fcntl failed");
 
 	server_update_socket();
 
@@ -107,16 +105,13 @@ server_create_socket(void)
 
 /* Fork new server. */
 int
-server_start(char *path)
+server_start(void)
 {
 	struct window_pane	*wp;
 	int	 		 pair[2];
 	char			*cause;
 	struct timeval		 tv;
 	u_int			 i;
-#ifdef HAVE_SETPROCTITLE
-	char			 rpathbuf[MAXPATHLEN];
-#endif
 
 	/* The first client is special and gets a socketpair; create it. */
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pair) != 0)
@@ -143,7 +138,7 @@ server_start(char *path)
 	/* event_init() was called in our parent, need to reinit. */
 	if (event_reinit(ev_base) != 0)
 		fatal("event_reinit failed");
-	clear_signals();
+	clear_signals(0);
 
 	logfile("server");
 	log_debug("server started, pid %ld", (long) getpid());
@@ -151,21 +146,17 @@ server_start(char *path)
 	ARRAY_INIT(&windows);
 	ARRAY_INIT(&clients);
 	ARRAY_INIT(&dead_clients);
-	ARRAY_INIT(&sessions);
-	ARRAY_INIT(&dead_sessions);
+	RB_INIT(&sessions);
+	RB_INIT(&dead_sessions);
 	TAILQ_INIT(&session_groups);
 	mode_key_init_trees();
 	key_bindings_init();
 	utf8_build();
 
 	start_time = time(NULL);
-	socket_path = path;
-
-#ifdef HAVE_SETPROCTITLE
-	if (realpath(socket_path, rpathbuf) == NULL)
-		strlcpy(rpathbuf, socket_path, sizeof rpathbuf);
 	log_debug("socket path %s", socket_path);
-	setproctitle("server (%s)", rpathbuf);
+#ifdef HAVE_SETPROCTITLE
+	setproctitle("server (%s)", socket_path);
 #endif
 
 	server_fd = server_create_socket();
@@ -184,8 +175,8 @@ server_start(char *path)
 	 * If there is a session already, put the current window and pane into
 	 * more mode.
 	 */
-	if (!ARRAY_EMPTY(&sessions) && !ARRAY_EMPTY(&cfg_causes)) {
-		wp = ARRAY_FIRST(&sessions)->curw->window->active;
+	if (!RB_EMPTY(&sessions) && !ARRAY_EMPTY(&cfg_causes)) {
+		wp = RB_MIN(sessions, &sessions)->curw->window->active;
 		window_pane_set_mode(wp, &window_copy_mode);
 		window_copy_init_for_output(wp);
 		for (i = 0; i < ARRAY_LENGTH(&cfg_causes); i++) {
@@ -226,14 +217,14 @@ server_loop(void)
 	}
 }
 
-/* Check if the server should be shutting down (no more clients or windows). */
+/* Check if the server should be shutting down (no more clients or sessions). */
 int
 server_should_shutdown(void)
 {
 	u_int	i;
 
-	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
-		if (ARRAY_ITEM(&sessions, i) != NULL)
+	if (!options_get_number(&global_options, "exit-unattached")) {
+		if (!RB_EMPTY(&sessions))
 			return (0);
 	}
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
@@ -248,7 +239,7 @@ void
 server_send_shutdown(void)
 {
 	struct client	*c;
-	struct session	*s;
+	struct session	*s, *next_s;
 	u_int		 i;
 
 	for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
@@ -262,9 +253,11 @@ server_send_shutdown(void)
 		}
 	}
 
-	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
-		if ((s = ARRAY_ITEM(&sessions, i)) != NULL)
-			session_destroy(s);
+	s = RB_MIN(sessions, &sessions);
+	while (s != NULL) {
+		next_s = RB_NEXT(sessions, &sessions, s);
+		session_destroy(s);
+		s = next_s;
 	}
 }
 
@@ -272,16 +265,19 @@ server_send_shutdown(void)
 void
 server_clean_dead(void)
 {
-	struct session	*s;
+	struct session	*s, *next_s;
 	struct client	*c;
 	u_int		 i;
 
-	for (i = 0; i < ARRAY_LENGTH(&dead_sessions); i++) {
-		s = ARRAY_ITEM(&dead_sessions, i);
-		if (s == NULL || s->references != 0)
-			continue;
-		ARRAY_SET(&dead_sessions, i, NULL);
-		xfree(s);
+	s = RB_MIN(sessions, &dead_sessions);
+	while (s != NULL) {
+		next_s = RB_NEXT(sessions, &dead_sessions, s);
+		if (s->references == 0) {
+			RB_REMOVE(sessions, &dead_sessions, s);
+			xfree(s->name);
+			xfree(s);
+		}
+		s = next_s;
 	}
 
 	for (i = 0; i < ARRAY_LENGTH(&dead_clients); i++) {
@@ -298,14 +294,13 @@ void
 server_update_socket(void)
 {
 	struct session	*s;
-	u_int		 i;
 	static int	 last = -1;
-	int		 n;
+	int		 n, mode;
+	struct stat      sb;
 
 	n = 0;
-	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
-		s = ARRAY_ITEM(&sessions, i);
-		if (s != NULL && !(s->flags & SESSION_UNATTACHED)) {
+	RB_FOREACH(s, sessions, &sessions) {
+		if (!(s->flags & SESSION_UNATTACHED)) {
 			n++;
 			break;
 		}
@@ -313,10 +308,20 @@ server_update_socket(void)
 
 	if (n != last) {
 		last = n;
-		if (n != 0)
-			chmod(socket_path, S_IRWXU|S_IRWXG);
-		else
-			chmod(socket_path, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+
+		if (stat(socket_path, &sb) != 0)
+			return;
+		mode = sb.st_mode;
+		if (n != 0) {
+			if (mode & S_IRUSR)
+				mode |= S_IXUSR;
+			if (mode & S_IRGRP)
+				mode |= S_IXGRP;
+			if (mode & S_IROTH)
+				mode |= S_IXOTH;
+		} else
+			mode &= ~(S_IXUSR|S_IXGRP|S_IXOTH);
+		chmod(socket_path, mode);
 	}
 }
 
@@ -482,15 +487,11 @@ void
 server_lock_server(void)
 {
 	struct session  *s;
-	u_int            i;
 	int		 timeout;
 	time_t           t;
 
 	t = time(NULL);
-	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
-		if ((s = ARRAY_ITEM(&sessions, i)) == NULL)
-			continue;
-
+	RB_FOREACH(s, sessions, &sessions) {
 		if (s->flags & SESSION_UNATTACHED) {
 			if (gettimeofday(&s->activity_time, NULL) != 0)
 				fatal("gettimeofday failed");
@@ -511,15 +512,11 @@ void
 server_lock_sessions(void)
 {
 	struct session  *s;
-	u_int		 i;
 	int		 timeout;
 	time_t		 t;
 
 	t = time(NULL);
-	for (i = 0; i < ARRAY_LENGTH(&sessions); i++) {
-		if ((s = ARRAY_ITEM(&sessions, i)) == NULL)
-			continue;
-
+	RB_FOREACH(s, sessions, &sessions) {
 		if (s->flags & SESSION_UNATTACHED) {
 			if (gettimeofday(&s->activity_time, NULL) != 0)
 				fatal("gettimeofday failed");

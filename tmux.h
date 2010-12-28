@@ -1,4 +1,4 @@
-/* $Id: tmux.h,v 1.571 2010/07/17 14:38:13 tcunha Exp $ */
+/* $Id: tmux.h,v 1.591 2010/12/22 15:36:44 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -31,7 +31,6 @@
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <termios.h>
 
@@ -58,8 +57,8 @@ extern char   **environ;
 /* Automatic name refresh interval, in milliseconds. */
 #define NAME_INTERVAL 500
 
-/* Maximum data to buffer for output before suspending reading from panes. */
-#define BACKOFF_THRESHOLD 1024
+/* Maximum data to buffer for output before suspending writing to a tty. */
+#define BACKOFF_THRESHOLD 16384
 
 /*
  * Maximum sizes of strings in message data. Don't forget to bump
@@ -829,8 +828,10 @@ TAILQ_HEAD(window_panes, window_pane);
 struct window {
 	char		*name;
 	struct event	 name_timer;
+	struct timeval   silence_timer;
 
 	struct window_pane *active;
+	struct window_pane *last;
 	struct window_panes panes;
 
 	int		 lastlayout;
@@ -841,9 +842,9 @@ struct window {
 
 	int		 flags;
 #define WINDOW_BELL 0x1
-#define WINDOW_HIDDEN 0x2
-#define WINDOW_ACTIVITY 0x4
-#define WINDOW_REDRAW 0x8
+#define WINDOW_ACTIVITY 0x2
+#define WINDOW_REDRAW 0x4
+#define WINDOW_SILENCE 0x8
 
 	struct options	 options;
 
@@ -864,7 +865,9 @@ struct winlink {
 #define WINLINK_BELL 0x1
 #define WINLINK_ACTIVITY 0x2
 #define WINLINK_CONTENT 0x4
-#define WINLINK_ALERTFLAGS (WINLINK_BELL|WINLINK_ACTIVITY|WINLINK_CONTENT)
+#define WINLINK_SILENCE 0x8
+#define WINLINK_ALERTFLAGS \
+    (WINLINK_BELL|WINLINK_ACTIVITY|WINLINK_CONTENT|WINLINK_SILENCE)
 
 	RB_ENTRY(winlink) entry;
 	TAILQ_ENTRY(winlink) sentry;
@@ -925,6 +928,8 @@ struct session_group {
 TAILQ_HEAD(session_groups, session_group);
 
 struct session {
+	u_int		 idx;
+
 	char		*name;
 	char		*cwd;
 
@@ -943,7 +948,6 @@ struct session {
 	struct paste_stack buffers;
 
 #define SESSION_UNATTACHED 0x1	/* not attached to any clients */
-#define SESSION_DEAD 0x2
 	int		 flags;
 
 	struct termios	*tio;
@@ -953,8 +957,10 @@ struct session {
 	int		 references;
 
 	TAILQ_ENTRY(session) gentry;
+	RB_ENTRY(session)    entry;
 };
-ARRAY_DECL(sessions, struct session *);
+RB_HEAD(sessions, session);
+ARRAY_DECL(sessionslist, struct session *);
 
 /* TTY information. */
 struct tty_key {
@@ -970,6 +976,8 @@ struct tty_key {
 struct tty_term {
 	char		*name;
 	u_int		 references;
+
+	char		 acs[UCHAR_MAX + 1][2];
 
 	struct tty_code	 codes[NTTYCODE];
 
@@ -1008,14 +1016,13 @@ struct tty {
 
 	struct grid_cell cell;
 
-	u_char		 acs[UCHAR_MAX + 1];
-
 #define TTY_NOCURSOR 0x1
 #define TTY_FREEZE 0x2
 #define TTY_ESCAPE 0x4
 #define TTY_UTF8 0x8
 #define TTY_STARTED 0x10
 #define TTY_OPENED 0x20
+#define TTY_BACKOFF 0x40
 	int		 flags;
 
 	int		 term_flags;
@@ -1095,9 +1102,17 @@ struct client {
 	char		*cwd;
 
 	struct tty	 tty;
-	FILE		*stdin_file;
-	FILE		*stdout_file;
-	FILE		*stderr_file;
+
+	int		 stdin_fd;
+	void		*stdin_data;
+	void		(*stdin_callback)(struct client *, void *);
+	struct bufferevent *stdin_event;
+
+	int		 stdout_fd;
+	struct bufferevent *stdout_event;
+
+	int		 stderr_fd;
+	struct bufferevent *stderr_event;
 
 	struct event	 repeat_timer;
 
@@ -1107,7 +1122,7 @@ struct client {
 
 #define CLIENT_TERMINAL 0x1
 #define CLIENT_PREFIX 0x2
-/* 0x4 unused */
+#define CLIENT_EXIT 0x4
 #define CLIENT_REDRAW 0x8
 #define CLIENT_STATUS 0x10
 #define CLIENT_REPEAT 0x20	/* allow command to repeat within repeat time */
@@ -1117,6 +1132,8 @@ struct client {
 #define CLIENT_DEAD 0x200
 #define CLIENT_BORDERS 0x400
 #define CLIENT_READONLY 0x800
+#define CLIENT_BACKOFF 0x1000
+#define CLIENT_REDRAWWINDOW 0x2000
 	int		 flags;
 
 	struct event	 identify_timer;
@@ -1131,16 +1148,15 @@ struct client {
 	int		 (*prompt_callbackfn)(void *, const char *);
 	void		 (*prompt_freefn)(void *);
 	void		*prompt_data;
+	u_int            prompt_hindex;
 
 #define PROMPT_SINGLE 0x1
 	int		 prompt_flags;
 
-	u_int		 prompt_hindex;
-	ARRAY_DECL(, char *) prompt_hdata;
-
 	struct mode_key_data prompt_mdata;
 
 	struct session	*session;
+	struct session	*last_session;
 
 	int		 references;
 };
@@ -1279,19 +1295,23 @@ extern struct options global_w_options;
 extern struct environ global_environ;
 extern struct event_base *ev_base;
 extern char	*cfg_file;
+extern char	*shell_cmd;
 extern int	 debug_level;
-extern int	 be_quiet;
 extern time_t	 start_time;
-extern char	*socket_path;
+extern char	 socket_path[MAXPATHLEN];
 extern int	 login_shell;
+extern char	*environ_path;
+extern pid_t	 environ_pid;
+extern u_int	 environ_idx;
 void		 logfile(const char *);
 const char	*getshell(void);
 int		 checkshell(const char *);
 int		 areshell(const char *);
+__dead void	 shell_exec(const char *, const char *);
 
 /* cfg.c */
 extern int       cfg_finished;
-struct causelist cfg_causes;
+extern struct causelist cfg_causes;
 void printflike2 cfg_add_cause(struct causelist *, const char *, ...);
 int		 load_cfg(const char *, struct cmd_ctx *, struct causelist *);
 
@@ -1360,7 +1380,6 @@ void	environ_push(struct environ *);
 
 /* tty.c */
 void	tty_raw(struct tty *, const char *);
-u_char	tty_get_acs(struct tty *, u_char);
 void	tty_attributes(struct tty *, const struct grid_cell *);
 void	tty_reset(struct tty *);
 void	tty_region_pane(struct tty *, const struct tty_ctx *, u_int, u_int);
@@ -1414,6 +1433,9 @@ const char	*tty_term_string2(
 int		 tty_term_number(struct tty_term *, enum tty_code_code);
 int		 tty_term_flag(struct tty_term *, enum tty_code_code);
 
+/* tty-acs.c */
+const char	*tty_acs_get(struct tty *, u_char);
+
 /* tty-keys.c */
 void	tty_keys_init(struct tty *);
 void	tty_keys_free(struct tty *);
@@ -1445,6 +1467,7 @@ const char	*cmd_set_option_print(
 /* cmd.c */
 int		 cmd_pack_argv(int, char **, char *, size_t);
 int		 cmd_unpack_argv(char *, size_t, int, char ***);
+char	       **cmd_copy_argv(int, char **);
 void		 cmd_free_argv(int, char **);
 struct cmd	*cmd_parse(int, char **, char **);
 int		 cmd_exec(struct cmd *, struct cmd_ctx *);
@@ -1489,6 +1512,7 @@ extern const struct cmd_entry cmd_kill_pane_entry;
 extern const struct cmd_entry cmd_kill_server_entry;
 extern const struct cmd_entry cmd_kill_session_entry;
 extern const struct cmd_entry cmd_kill_window_entry;
+extern const struct cmd_entry cmd_last_pane_entry;
 extern const struct cmd_entry cmd_last_window_entry;
 extern const struct cmd_entry cmd_link_window_entry;
 extern const struct cmd_entry cmd_list_buffers_entry;
@@ -1584,8 +1608,7 @@ void	cmd_buffer_free(struct cmd *);
 size_t	cmd_buffer_print(struct cmd *, char *, size_t);
 
 /* client.c */
-struct imsgbuf *client_init(char *, int, int);
-__dead void	client_main(void);
+int	client_main(int, char **, int);
 
 /* key-bindings.c */
 extern struct key_bindings key_bindings;
@@ -1608,7 +1631,7 @@ const char *key_string_lookup_key(int);
 /* server.c */
 extern struct clients clients;
 extern struct clients dead_clients;
-int	 server_start(char *);
+int	 server_start(void);
 void	 server_update_socket(void);
 
 /* server-client.c */
@@ -1647,6 +1670,7 @@ void	 server_unlink_window(struct session *, struct winlink *);
 void	 server_destroy_pane(struct window_pane *);
 void	 server_destroy_session_group(struct session *);
 void	 server_destroy_session(struct session *);
+void	 server_check_unattached (void);
 void	 server_set_identify(struct client *);
 void	 server_clear_identify(struct client *);
 void	 server_update_event(struct client *);
@@ -1812,9 +1836,7 @@ int	 screen_check_selection(struct screen *, u_int, u_int);
 
 /* window.c */
 extern struct windows windows;
-int		 window_cmp(struct window *, struct window *);
 int		 winlink_cmp(struct winlink *, struct winlink *);
-RB_PROTOTYPE(windows, window, entry, window_cmp);
 RB_PROTOTYPE(winlinks, winlink, entry, winlink_cmp);
 struct winlink	*winlink_find_by_index(struct winlinks *, int);
 struct winlink	*winlink_find_by_window(struct winlinks *, struct window *);
@@ -1940,19 +1962,24 @@ void		 queue_window_name(struct window *);
 char		*default_window_name(struct window *);
 
 /* signal.c */
-void set_signals(void(*handler)(int, short, unused void *));
-void clear_signals(void);
+void set_signals(void(*)(int, short, void *));
+void clear_signals(int);
 
 /* session.c */
 extern struct sessions sessions;
 extern struct sessions dead_sessions;
 extern struct session_groups session_groups;
+int	session_cmp(struct session *, struct session *);
+RB_PROTOTYPE(sessions, session, entry, session_cmp);
+int		 session_alive(struct session *);
 struct session	*session_find(const char *);
+struct session	*session_find_by_index(u_int);
 struct session	*session_create(const char *, const char *, const char *,
 		     struct environ *, struct termios *, int, u_int, u_int,
 		     char **);
 void		 session_destroy(struct session *);
-int		 session_index(struct session *, u_int *);
+struct session	*session_next_session(struct session *);
+struct session	*session_previous_session(struct session *);
 struct winlink	*session_new(struct session *,
 		     const char *, const char *, const char *, int, char **);
 struct winlink	*session_attach(

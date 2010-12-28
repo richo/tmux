@@ -1,4 +1,4 @@
-/* $Id: cmd-choose-window.c,v 1.22 2010/06/22 23:26:18 tcunha Exp $ */
+/* $Id: cmd-choose-window.c,v 1.24 2010/12/22 15:28:50 tcunha Exp $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -87,6 +87,8 @@ cmd_choose_window_exec(struct cmd *self, struct cmd_ctx *ctx)
 			flag = '!';
 		else if (wm->flags & WINLINK_CONTENT)
 			flag = '+';
+		else if (wm->flags & WINLINK_SILENCE)
+			flag = '~';
 		else if (wm == s->curw)
 			flag = '*';
 		else if (wm == TAILQ_FIRST(&s->lastw))
@@ -127,20 +129,19 @@ void
 cmd_choose_window_callback(void *data, int idx)
 {
 	struct cmd_choose_window_data	*cdata = data;
+	struct session			*s = cdata->session;
 	struct cmd_list			*cmdlist;
 	struct cmd_ctx			 ctx;
 	char				*target, *template, *cause;
 
 	if (idx == -1)
 		return;
+	if (!session_alive(s))
+		return;
 	if (cdata->client->flags & CLIENT_DEAD)
 		return;
-	if (cdata->session->flags & SESSION_DEAD)
-		return;
-	if (cdata->client->session != cdata->session)
-		return;
 
-	xasprintf(&target, "%s:%d", cdata->session->name, idx);
+	xasprintf(&target, "%s:%d", s->name, idx);
 	template = cmd_template_replace(cdata->template, target, 1);
 	xfree(target);
 

@@ -1,4 +1,4 @@
-/* $Id: input.c,v 1.109 2010/04/18 15:11:47 tcunha Exp $ */
+/* $Id: input.c,v 1.111 2010/12/25 23:43:53 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -681,7 +681,9 @@ input_parse(struct window_pane *wp)
 
 	if (EVBUFFER_LENGTH(evb) == 0)
 		return;
+
 	wp->window->flags |= WINDOW_ACTIVITY;
+	wp->window->flags &= ~WINDOW_SILENCE;
 
 	/*
 	 * Open the screen. Use NULL wp if there is a mode set as don't want to
@@ -718,11 +720,11 @@ input_parse(struct window_pane *wp)
 		 * Execute the handler, if any. Don't switch state if it
 		 * returns non-zero.
 		 */
-		if (itr->handler && itr->handler(ictx) != 0)
+		if (itr->handler != NULL && itr->handler(ictx) != 0)
 			continue;
 
 		/* And switch state, if necessary. */
-		if (itr->state) {
+		if (itr->state != NULL) {
 			if (ictx->state->exit != NULL)
 				ictx->state->exit(ictx);
 			ictx->state = itr->state;
@@ -922,9 +924,9 @@ input_c0_dispatch(struct input_ctx *ictx)
 int
 input_esc_dispatch(struct input_ctx *ictx)
 {
-	struct screen_write_ctx	*sctx = &ictx->ctx;
-	struct screen		*s = sctx->s;
-	struct input_table_entry       *entry;
+	struct screen_write_ctx		*sctx = &ictx->ctx;
+	struct screen			*s = sctx->s;
+	struct input_table_entry	*entry;
 
 	if (ictx->flags & INPUT_DISCARD)
 		return (0);

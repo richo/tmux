@@ -1,7 +1,7 @@
-/* $Id: cmd-list-windows.c,v 1.44 2010/12/06 21:56:32 nicm Exp $ */
+/* $Id: cmd-last-pane.c,v 1.1 2010/10/24 01:34:30 tcunha Exp $ */
 
 /*
- * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
+ * Copyright (c) 2010 Nicholas Marriott <nicm@users.sourceforge.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,45 +18,41 @@
 
 #include <sys/types.h>
 
-#include <unistd.h>
-
 #include "tmux.h"
 
 /*
- * List windows on given session.
+ * Move to last pane.
  */
 
-int	cmd_list_windows_exec(struct cmd *, struct cmd_ctx *);
+int	cmd_last_pane_exec(struct cmd *, struct cmd_ctx *);
 
-const struct cmd_entry cmd_list_windows_entry = {
-	"list-windows", "lsw",
-	CMD_TARGET_SESSION_USAGE,
+const struct cmd_entry cmd_last_pane_entry = {
+	"last-pane", "lastp",
+	CMD_TARGET_WINDOW_USAGE,
 	0, "",
 	cmd_target_init,
 	cmd_target_parse,
-	cmd_list_windows_exec,
+	cmd_last_pane_exec,
 	cmd_target_free,
 	cmd_target_print
 };
 
 int
-cmd_list_windows_exec(struct cmd *self, struct cmd_ctx *ctx)
+cmd_last_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct cmd_target_data	*data = self->data;
-	struct session		*s;
 	struct winlink		*wl;
-	char			*layout;
+	struct window		*w;
 
-	if ((s = cmd_find_session(ctx, data->target)) == NULL)
+	if ((wl = cmd_find_window(ctx, data->target, NULL)) == NULL)
 		return (-1);
+	w = wl->window;
 
-	RB_FOREACH(wl, winlinks, &s->windows) {
-		layout = layout_dump(wl->window);
-		ctx->print(ctx, "%d: %s [%ux%u] [layout %s]%s",
-		    wl->idx, wl->window->name, wl->window->sx, wl->window->sy,
-		    layout, wl == s->curw ? " (active)" : "");
-		xfree(layout);
+	if (w->last == NULL) {
+		ctx->error(ctx, "no last pane");
+		return (-1);
 	}
+	window_set_active_pane(w, w->last);
 
 	return (0);
 }
