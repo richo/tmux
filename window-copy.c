@@ -1,4 +1,4 @@
-/* $Id: window-copy.c,v 1.121 2010/07/02 02:56:07 tcunha Exp $ */
+/* $Id: window-copy.c,v 1.125 2010/12/11 17:57:28 nicm Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -171,7 +171,8 @@ window_copy_init(struct window_pane *wp)
 	data->searchstr = NULL;
 
 	wp->flags |= PANE_FREEZE;
-	bufferevent_disable(wp->event, EV_READ|EV_WRITE);
+	if (wp->fd != -1)
+		bufferevent_disable(wp->event, EV_READ|EV_WRITE);
 
 	data->jumptype = WINDOW_COPY_OFF;
 	data->jumpchar = '\0';
@@ -234,7 +235,8 @@ window_copy_free(struct window_pane *wp)
 	struct window_copy_mode_data	*data = wp->modedata;
 
 	wp->flags &= ~PANE_FREEZE;
-	bufferevent_enable(wp->event, EV_READ|EV_WRITE);
+	if (wp->fd != -1)
+		bufferevent_enable(wp->event, EV_READ|EV_WRITE);
 
 	if (data->searchstr != NULL)
 		xfree(data->searchstr);
@@ -340,6 +342,8 @@ window_copy_resize(struct window_pane *wp, u_int sx, u_int sy)
 		data->cy = sy - 1;
 	if (data->cx > sx)
 		data->cx = sx;
+	if (data->oy > screen_hsize(data->backing))
+		data->oy = screen_hsize(data->backing);
 
 	window_copy_clear_selection(wp);
 
@@ -1053,6 +1057,8 @@ window_copy_write_line(
 	if (py == 0) {
 		size = xsnprintf(hdr, sizeof hdr,
 		    "[%u/%u]", data->oy, screen_hsize(data->backing));
+		if (size > screen_size_x(s))
+			size = screen_size_x(s);
 		screen_write_cursormove(ctx, screen_size_x(s) - size, 0);
 		screen_write_puts(ctx, &gc, "%s", hdr);
 	} else if (py == last && data->inputtype != WINDOW_COPY_OFF) {
@@ -1261,8 +1267,8 @@ window_copy_copy_selection(struct window_pane *wp, struct session *sess)
 			/* Cursor is on the left. */
 			lastex = data->selx + 1;
 			restex = data->selx + 1;
-			firstsx = data->cx + 1;
-			restsx = data->cx + 1;
+			firstsx = data->cx;
+			restsx = data->cx;
 		}
 	} else {
 		/*

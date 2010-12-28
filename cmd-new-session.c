@@ -1,4 +1,4 @@
-/* $Id: cmd-new-session.c,v 1.78 2010/07/02 02:49:19 tcunha Exp $ */
+/* $Id: cmd-new-session.c,v 1.80 2010/12/22 15:31:00 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -122,7 +122,7 @@ int
 cmd_new_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 {
 	struct cmd_new_session_data	*data = self->data;
-	struct session			*s, *groupwith;
+	struct session			*s, *old_s, *groupwith;
 	struct window			*w;
 	struct window_pane		*wp;
 	struct environ			 env;
@@ -279,9 +279,16 @@ cmd_new_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 	if (!detached) {
 		if (ctx->cmdclient != NULL) {
 			server_write_client(ctx->cmdclient, MSG_READY, NULL, 0);
+
+			old_s = ctx->cmdclient->session;
+			if (old_s != NULL)
+				ctx->cmdclient->last_session = old_s;
 			ctx->cmdclient->session = s;
 			server_redraw_client(ctx->cmdclient);
 		} else {
+			old_s = ctx->curclient->session;
+			if (old_s != NULL)
+				ctx->curclient->last_session = old_s;
 			ctx->curclient->session = s;
 			server_redraw_client(ctx->curclient);
 		}

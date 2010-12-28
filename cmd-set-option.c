@@ -1,4 +1,4 @@
-/* $Id: cmd-set-option.c,v 1.98 2010/07/02 02:45:52 tcunha Exp $ */
+/* $Id: cmd-set-option.c,v 1.102 2010/12/22 15:23:59 tcunha Exp $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -75,6 +75,7 @@ const char *set_option_bell_action_list[] = {
 
 const struct set_option_entry set_option_table[] = {
 	{ "escape-time", SET_OPTION_NUMBER, 0, INT_MAX, NULL },
+	{ "exit-unattached", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "quiet", SET_OPTION_FLAG, 0, 0, NULL },
 	{ NULL, 0, 0, 0, NULL }
 };
@@ -87,6 +88,7 @@ const struct set_option_entry set_session_option_table[] = {
 	{ "default-path", SET_OPTION_STRING, 0, 0, NULL },
 	{ "default-shell", SET_OPTION_STRING, 0, 0, NULL },
 	{ "default-terminal", SET_OPTION_STRING, 0, 0, NULL },
+	{ "destroy-unattached", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "detach-on-destroy", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "display-panes-colour", SET_OPTION_COLOUR, 0, 0, NULL },
 	{ "display-panes-active-colour", SET_OPTION_COLOUR, 0, 0, NULL },
@@ -134,6 +136,7 @@ const struct set_option_entry set_session_option_table[] = {
 	{ "visual-activity", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "visual-bell", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "visual-content", SET_OPTION_FLAG, 0, 0, NULL },
+	{ "visual-silence", SET_OPTION_FLAG, 0, 0, NULL },
 	{ NULL, 0, 0, 0, NULL }
 };
 
@@ -155,6 +158,9 @@ const struct set_option_entry set_window_option_table[] = {
 	{ "mode-mouse", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "monitor-activity", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "monitor-content", SET_OPTION_STRING, 0, 0, NULL },
+	{ "monitor-silence",SET_OPTION_NUMBER, 0, INT_MAX, NULL},
+	{ "other-pane-height", SET_OPTION_NUMBER, 0, INT_MAX, NULL },
+	{ "other-pane-width", SET_OPTION_NUMBER, 0, INT_MAX, NULL },
 	{ "remain-on-exit", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "synchronize-panes", SET_OPTION_FLAG, 0, 0, NULL },
 	{ "utf8", SET_OPTION_FLAG, 0, 0, NULL },
@@ -293,6 +299,7 @@ cmd_set_option_exec(struct cmd *self, struct cmd_ctx *ctx)
 	 */
 	if (strcmp(entry->name, "status-left") == 0 ||
 	    strcmp(entry->name, "status-right") == 0 ||
+	    strcmp(entry->name, "status") == 0 ||
 	    strcmp(entry->name, "set-titles-string") == 0 ||
 	    strcmp(entry->name, "window-status-format") == 0) {
 		for (i = 0; i < ARRAY_LENGTH(&clients); i++) {
