@@ -1,0 +1,322 @@
+Avoid epoll-related breakage on Linux, changes from:
+
+ http://permalink.gmane.org/gmane.comp.terminal-emulators.tmux.scm/211
+
+(with formatting changes for dpkg-source)
+
+--- a/configure	8 Dec 2010 19:55:31 -0000	1.59
++++ b/configure	30 Dec 2010 20:41:07 -0000	1.60
+@@ -1,5 +1,5 @@
+ #!/bin/sh
+-# $Id: configure,v 1.59 2010/12/08 19:55:31 nicm Exp $
++# $Id: configure,v 1.60 2010/12/30 20:41:07 nicm Exp $
+ #
+ # Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+ #
+@@ -30,8 +30,6 @@ cat <<EOF >>$CONFIG_H
+ #undef HAVE_ASPRINTF
+ #undef HAVE_BROKEN_CMSG_FIRSTHDR
+ #undef HAVE_BROKEN_CURSES_H
+-#undef HAVE_BROKEN_KQUEUE
+-#undef HAVE_BROKEN_POLL
+ #undef HAVE_BZERO
+ #undef HAVE_CLOSEFROM
+ #undef HAVE_DAEMON
+@@ -185,8 +183,6 @@ EOF
+ 	cat <<EOF >>$CONFIG_H
+ #define HAVE_ASPRINTF
+ #define HAVE_BROKEN_CMSG_FIRSTHDR
+-#define HAVE_BROKEN_KQUEUE
+-#define HAVE_BROKEN_POLL
+ #define HAVE_BZERO
+ #define HAVE_DAEMON
+ #define HAVE_DIRFD
+@@ -222,7 +218,6 @@ EOF
+     FreeBSD|DragonFly)
+ 	cat <<EOF >>$CONFIG_H
+ #define HAVE_ASPRINTF
+-#define HAVE_BROKEN_KQUEUE
+ #define HAVE_BZERO
+ #define HAVE_CLOSEFROM
+ #define HAVE_DAEMON
+--- a/osdep-darwin.c	4 May 2009 17:58:27 -0000	1.11
++++ b/osdep-darwin.c	30 Dec 2010 20:41:07 -0000	1.12
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-darwin.c,v 1.11 2009/05/04 17:58:27 nicm Exp $ */
++/* $Id: osdep-darwin.c,v 1.12 2010/12/30 20:41:07 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Joshua Elsasser <josh@elsasser.org>
+@@ -19,11 +19,13 @@
+ #include <sys/types.h>
+ #include <sys/sysctl.h>
+ 
++#include <event.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+ 
+-char	*osdep_get_name(int, char *);
++char			*osdep_get_name(int, char *);
++struct event_base	*osdep_event_init(void);
+ 
+ #define unused __attribute__ ((unused))
+ 
+@@ -45,3 +47,15 @@ osdep_get_name(int fd, unused char *tty)
+ 
+ 	return (strdup(kp.kp_proc.p_comm));
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	/*
++	 * On OS X, kqueue and poll are both completely broken and don't
++	 * work on anything except socket file descriptors (yes, really).
++	 */
++	setenv("EVENT_NOKQUEUE", "1", 1);
++	setenv("EVENT_NOPOLL", "1", 1);
++	return (event_init());
++}
+--- a/osdep-freebsd.c	9 Aug 2009 18:00:45 -0000	1.19
++++ b/osdep-freebsd.c	30 Dec 2010 20:41:08 -0000	1.20
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-freebsd.c,v 1.19 2009/08/09 18:00:45 tcunha Exp $ */
++/* $Id: osdep-freebsd.c,v 1.20 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -24,6 +24,7 @@
+ 
+ #include <err.h>
+ #include <errno.h>
++#include <event.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -31,6 +32,7 @@
+ 
+ struct kinfo_proc	*cmp_procs(struct kinfo_proc *, struct kinfo_proc *);
+ char			*osdep_get_name(int, char *);
++struct event_base	*osdep_event_init(void);
+ 
+ #ifndef nitems
+ #define nitems(_a) (sizeof((_a)) / sizeof((_a)[0]))
+@@ -127,3 +129,14 @@ error:
+ 	free(buf);
+ 	return (NULL);
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	/*
++	 * On some versions of FreeBSD, kqueue doesn't work properly on tty
++	 * file descriptors. This is fixed in recent FreeBSD versions.
++	 */
++	setenv("EVENT_NOKQUEUE", "1", 1);
++	return (event_init());
++}
+--- a/osdep-linux.c	29 Apr 2009 23:07:35 -0000	1.6
++++ b/osdep-linux.c	30 Dec 2010 20:41:08 -0000	1.7
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-linux.c,v 1.6 2009/04/29 23:07:35 nicm Exp $ */
++/* $Id: osdep-linux.c,v 1.7 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -19,7 +19,9 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
++#include <event.h>
+ #include <stdio.h>
++#include <stdlib.h>
+ #include <unistd.h>
+ 
+ #include "tmux.h"
+@@ -57,3 +59,13 @@ osdep_get_name(int fd, unused char *tty)
+ 	fclose(f);
+ 	return (buf);
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	/*
++	 * On Linux, epoll doesn't work on /dev/null (yes, really).
++	 */
++	setenv("EVENT_NOEPOLL", "1", 1);
++	return (event_init());
++}
+--- a/osdep-netbsd.c	24 Sep 2009 12:30:22 -0000	1.9
++++ b/osdep-netbsd.c	30 Dec 2010 20:41:08 -0000	1.10
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-netbsd.c,v 1.9 2009/09/24 12:30:22 nicm Exp $ */
++/* $Id: osdep-netbsd.c,v 1.10 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -22,6 +22,7 @@
+ #include <sys/sysctl.h>
+ 
+ #include <errno.h>
++#include <event.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+@@ -33,6 +34,7 @@
+ 
+ struct kinfo_proc2	*cmp_procs(struct kinfo_proc2 *, struct kinfo_proc2 *);
+ char			*osdep_get_name(int, char *);
++struct event_base	*osdep_event_init(void);
+ 
+ struct kinfo_proc2 *
+ cmp_procs(struct kinfo_proc2 *p1, struct kinfo_proc2 *p2)
+@@ -120,3 +122,9 @@ error:
+ 	free(buf);
+ 	return (NULL);
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	return (event_init());
++}
+--- a/osdep-openbsd.c	26 Dec 2009 23:48:37 -0000	1.20
++++ b/osdep-openbsd.c	30 Dec 2010 20:42:39 -0000	1.22
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-openbsd.c,v 1.20 2009/12/26 23:48:37 tcunha Exp $ */
++/* $Id: osdep-openbsd.c,v 1.22 2010/12/30 20:42:39 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -21,6 +21,7 @@
+ #include <sys/stat.h>
+ 
+ #include <errno.h>
++#include <event.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+@@ -35,7 +36,8 @@
+ 	((p)->p_stat == SSTOP || (p)->p_stat == SZOMB || (p)->p_stat == SDEAD)
+ 
+ struct kinfo_proc2	*cmp_procs(struct kinfo_proc2 *, struct kinfo_proc2 *);
+-char		*osdep_get_name(int, char *);
++char			*osdep_get_name(int, char *);
++struct event_base	*osdep_event_init(void);
+ 
+ struct kinfo_proc2 *
+ cmp_procs(struct kinfo_proc2 *p1, struct kinfo_proc2 *p2)
+@@ -130,3 +132,9 @@ error:
+ 	free(buf);
+ 	return (NULL);
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	return (event_init());
++}
+--- a/osdep-sunos.c	15 Oct 2009 07:11:25 -0000	1.2
++++ b/osdep-sunos.c	30 Dec 2010 20:41:08 -0000	1.3
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-sunos.c,v 1.2 2009/10/15 07:11:25 nicm Exp $ */
++/* $Id: osdep-sunos.c,v 1.3 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Todd Carson <toc@daybefore.net>
+@@ -19,6 +19,7 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
++#include <event.h>
+ #include <fcntl.h>
+ #include <procfs.h>
+ #include <stdio.h>
+@@ -63,3 +64,9 @@ osdep_get_name(int fd, char *tty)
+ 
+ 	return (xstrdup(p.pr_fname));
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	return (event_init());
++}
+--- a/osdep-unknown.c	29 Apr 2009 23:07:35 -0000	1.5
++++ b/osdep-unknown.c	30 Dec 2010 20:41:08 -0000	1.6
+@@ -1,4 +1,4 @@
+-/* $Id: osdep-unknown.c,v 1.5 2009/04/29 23:07:35 nicm Exp $ */
++/* $Id: osdep-unknown.c,v 1.6 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -18,6 +18,8 @@
+ 
+ #include <sys/types.h>
+ 
++#include <event.h>
++
+ #include "tmux.h"
+ 
+ char *
+@@ -25,3 +27,9 @@ osdep_get_name(unused int fd, unused cha
+ {
+ 	return (NULL);
+ }
++
++struct event_base *
++osdep_event_init(void)
++{
++	return (event_init());
++}
+--- a/tmux.c	27 Dec 2010 21:22:24 -0000	1.228
++++ b/tmux.c	30 Dec 2010 20:41:08 -0000	1.229
+@@ -1,4 +1,4 @@
+-/* $Id: tmux.c,v 1.228 2010/12/27 21:22:24 tcunha Exp $ */
++/* $Id: tmux.c,v 1.229 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -495,20 +495,6 @@ main(int argc, char **argv)
+ #endif
+ 
+ 	/* Pass control to the client. */
+-#ifdef HAVE_BROKEN_KQUEUE
+-	if (setenv("EVENT_NOKQUEUE", "1", 1) != 0)
+-		fatal("setenv failed");
+-#endif
+-#ifdef HAVE_BROKEN_POLL
+-	if (setenv("EVENT_NOPOLL", "1", 1) != 0)
+-		fatal("setenv failed");
+-#endif
+-	ev_base = event_init();
+-#ifdef HAVE_BROKEN_KQUEUE
+-	unsetenv("EVENT_NOKQUEUE");
+-#endif
+-#ifdef HAVE_BROKEN_POLL
+-	unsetenv("EVENT_NOPOLL");
+-#endif
++	ev_base = osdep_event_init();
+ 	exit(client_main(argc, argv, flags));
+ }
+--- a/tmux.h	22 Dec 2010 15:36:44 -0000	1.591
++++ b/tmux.h	30 Dec 2010 20:41:08 -0000	1.592
+@@ -1,4 +1,4 @@
+-/* $Id: tmux.h,v 1.591 2010/12/22 15:36:44 tcunha Exp $ */
++/* $Id: tmux.h,v 1.592 2010/12/30 20:41:08 nicm Exp $ */
+ 
+ /*
+  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
+@@ -2004,7 +2004,8 @@ int	utf8_open(struct utf8_data *, u_char
+ int	utf8_append(struct utf8_data *, u_char);
+ 
+ /* osdep-*.c */
+-char   *osdep_get_name(int, char *);
++char		*osdep_get_name(int, char *);
++struct event_base *osdep_event_init(void);
+ 
+ /* log.c */
+ void		 log_open_tty(int);

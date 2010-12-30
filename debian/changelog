@@ -1,3 +1,10 @@
+tmux (1.4-2) UNRELEASED; urgency=low
+
+  * Cherry-pick upstream fix disabling epoll support in libevent to avoid
+    server hangs on Linux.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Thu, 30 Dec 2010 22:17:52 +0100
+
 tmux (1.4-1) experimental; urgency=low
 
   * New upstream version; windows are no longer inappropriately set as
