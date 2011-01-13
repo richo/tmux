@@ -1,3 +1,12 @@
+tmux (1.4-3) experimental; urgency=low
+
+  * Move back to epoll on Linux until libevent's poll backend gets fixed
+    (see #609444).
+  * Add build-conflicts on libevent 2.0 for the time being, Debian's
+    version is too old.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Thu, 13 Jan 2011 21:39:15 +0100
+
 tmux (1.4-2) experimental; urgency=low
 
   * Cherry-pick upstream fix disabling epoll support in libevent to avoid
