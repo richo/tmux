@@ -1,3 +1,10 @@
+tmux (1.4-4) unstable; urgency=low
+
+  * Drop build-conflicts against libevent-dev (>> 2.0).
+  * Upload to unstable.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Wed, 16 Feb 2011 20:35:31 +0100
+
 tmux (1.4-3) experimental; urgency=low
 
   * Move back to epoll on Linux until libevent's poll backend gets fixed
@@ -13,7 +20,7 @@ tmux (1.4-2) experimental; urgency=low
     server hangs.
   * Define PATH_MAX if it's missing to fix FTBFS on GNU/Hurd, thanks to
     Justus Winter (closes: #609333).
-  
+
  -- Romain Francoise <rfrancoise@debian.org>  Sat, 08 Jan 2011 23:41:00 +0100
 
 tmux (1.4-1) experimental; urgency=low
