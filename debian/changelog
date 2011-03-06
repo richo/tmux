@@ -1,3 +1,11 @@
+tmux (1.4-5) unstable; urgency=low
+
+  * Fix "tmux segfaults with [lost server] if two panes are closed with
+    tiled layout" by patch 08_layout_set.diff (Closes: #616641).
+  * Update debian/copyright with regard to dropped upstream patches.
+
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sun, 06 Mar 2011 22:02:46 +0100
+
 tmux (1.4-4) unstable; urgency=low
 
   * Drop build-conflicts against libevent-dev (>> 2.0).
