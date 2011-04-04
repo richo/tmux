@@ -1,8 +1,8 @@
 tmux (1.4-6) UNRELEASED; urgency=low
 
   * Fix "Incorrect dropping of privileges allows users to obtain utmp
-    group privileges" by adjusting patch 04_drop_unnecessary_privilegies.diff
-    to apply on server.c instead of tmux.c (Closes: #620304).
+    group privileges" by adjusting patch 04_drop_unnecessary_privileges.diff
+    to drop privileges at the caller side (Closes: #620304).
 
  -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sun, 03 Apr 2011 18:28:42 +0200
 
