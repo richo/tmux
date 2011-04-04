@@ -1,4 +1,4 @@
-tmux (1.4-6) UNRELEASED; urgency=low
+tmux (1.4-6) unstable; urgency=high
 
   * Fix "Incorrect dropping of privileges allows users to obtain utmp
     group privileges" by adjusting patch 04_drop_unnecessary_privileges.diff
