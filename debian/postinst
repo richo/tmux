@@ -1,9 +1,0 @@
-#!/bin/sh
-set -e
-
-if ! test -d /var/run/tmux; then
-  install -g utmp -m 0775 -d /var/run/tmux
-  [ `stat -c%a /usr/bin/tmux` -lt 4000 ] || chmod 0755 /var/run/tmux
-fi
-
-#DEBHELPER#
