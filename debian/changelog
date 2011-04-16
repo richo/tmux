@@ -1,9 +1,21 @@
-tmux (1.4-7) UNRELEASED; urgency=low
+tmux (1.4-7) unstable; urgency=low
 
-  * Drop 03_proper_socket_handling.diff and
-    04_drop_unnecessary_privileges.diff to regain orginal behaviour of tmux.
+  [ Karl Ferdinand Ebert ]
+  * Drop Debian-specific socket handling changes:
+    + debian/patches/03_proper_socket_handling.diff,
+      debian/patches/04_dropping_unnecessary_privileges.diff: Dropped.
+    + debian/{init,tmux.lintian-overrides}: Removed, no longer necessary.
+    + debian/rules: Remove dh_installinit and dh_fixperms invocations.
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Mon, 11 Apr 2011 23:29:02 +0200
+  [ Romain Francoise ]
+  * debian/control: Remove reference to /var/run as socket location.
+  * debian/copyright: Remove references to screen init script.
+  * debian/{preinst,postinst,postrm}: Deal with disappearance of the
+    /etc/init.d/tmux-cleanup script.
+  * debian/NEWS: Mention socket handling changes.
+  * Drop disabled patch debian/patches/06_hardening_write_return.diff.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 16 Apr 2011 19:41:04 +0200
 
 tmux (1.4-6) unstable; urgency=high
 
