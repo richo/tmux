@@ -1,4 +1,5 @@
-# correct directory /usr/local 
+Tweak makefiles to use /usr as default prefix.
+
 --- a/GNUmakefile
 +++ b/GNUmakefile
 @@ -23,7 +23,7 @@
