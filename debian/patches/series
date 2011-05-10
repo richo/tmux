@@ -2,3 +2,4 @@
 05_build_kfreebsd_hurd.diff
 07_fix_hyphen.diff
 08_layout_set.diff
+99_upstream.diff
