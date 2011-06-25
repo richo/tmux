@@ -3,3 +3,4 @@
 07_fix_hyphen.diff
 08_layout_set.diff
 99_upstream.diff
+09_fix_gnome_terminal_keycodes.diff
