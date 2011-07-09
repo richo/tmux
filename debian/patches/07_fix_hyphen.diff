@@ -1,7 +1,7 @@
 # fixes lintian's complains about missing hyphens.
 --- a/tmux.1
 +++ b/tmux.1
-@@ -436,7 +436,7 @@
+@@ -450,7 +450,7 @@
  .Ql -
  may be followed by an offset, for example:
  .Bd -literal -offset indent
@@ -10,7 +10,7 @@
  .Ed
  .Pp
  When dealing with a session that doesn't contain sequential window indexes,
-@@ -479,23 +479,23 @@
+@@ -504,23 +504,23 @@
  .Nm
  commands include:
  .Bd -literal -offset indent
@@ -41,7 +41,7 @@
  .Ed
  .Sh CLIENTS AND SESSIONS
  The
-@@ -931,7 +931,7 @@
+@@ -1007,7 +1007,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -50,7 +50,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -948,7 +948,7 @@
+@@ -1024,7 +1024,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -59,7 +59,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -965,7 +965,7 @@
+@@ -1041,7 +1041,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -68,7 +68,7 @@
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
-@@ -1168,7 +1168,7 @@
+@@ -1271,7 +1271,7 @@
  option only opens a new pipe if no previous pipe exists, allowing a pipe to
  be toggled with a single key, for example:
  .Bd -literal -offset indent
@@ -77,7 +77,7 @@
  .Ed
  .It Xo Ic previous-layout
  .Op Fl t Ar target-window
-@@ -1895,7 +1895,7 @@
+@@ -2106,7 +2106,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -86,7 +86,7 @@
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -2076,7 +2076,7 @@
+@@ -2310,7 +2310,7 @@
  .Ic rename-window .
  It may be switched off globally with:
  .Bd -literal -offset indent
@@ -95,7 +95,7 @@
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2487,7 +2487,7 @@
+@@ -2776,7 +2776,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -104,7 +104,7 @@
  This command works only from inside
  .Nm .
  .It Ic clear-history Op Fl t Ar target-pane
-@@ -2671,29 +2671,29 @@
+@@ -2981,29 +2981,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent

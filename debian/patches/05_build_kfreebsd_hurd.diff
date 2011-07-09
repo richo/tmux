@@ -1,18 +1,18 @@
 # Enable kFreeBSD and Hurd specific configure script
 --- a/configure
 +++ b/configure
-@@ -89,7 +89,7 @@
- EOF
- 	;;
- # ------------------------------------------------------------------------------
--    Linux)
-+    Linux|GNU|GNU/kFreeBSD)
- 	cat <<EOF >>$CONFIG_H
- #define HAVE_ASPRINTF
- #define HAVE_BZERO
+@@ -5637,7 +5637,7 @@
+ 
+ 		PLATFORM=darwin
+ 		;;
+-	*linux*)
++	*linux*|GNU|GNU/kFreeBSD)
+ 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: linux" >&5
+ $as_echo "linux" >&6; }
+ 		PLATFORM=linux
 --- a/tmux.h
 +++ b/tmux.h
-@@ -389,6 +389,18 @@
+@@ -396,6 +396,18 @@
  	char		argv[COMMAND_LENGTH];
  };
  
@@ -31,9 +31,9 @@
  struct msg_identify_data {
  	char		cwd[MAXPATHLEN];
  
-@@ -1080,6 +1088,10 @@
- 	time_t	msg_time;
+@@ -1114,6 +1126,10 @@
  };
+ RB_HEAD(status_out_tree, status_out);
  
 +#ifndef IOV_MAX
 +#define IOV_MAX	1024
