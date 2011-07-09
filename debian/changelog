@@ -1,3 +1,17 @@
+tmux (1.5-1) unstable; urgency=low
+
+  * New upstream version 1.5 which fixes incorrect result from tmux
+    has-session (Closes: #621138).
+  * Rearrange all patches:
+    - Remove 08_layout_set.diff (applied upstream).
+    - Remove 09_fix_gnome_terminal_keycodes (included in upstream).
+    - Remove 99_upstream.diff (no difference now).
+    - New configure scripts forces to set install_prefix and support for HURD
+      and kFreeBSD else where.
+    - Refresh 07_fix_hyphen.diff and update series.
+
+ -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sat, 09 Jul 2011 22:11:24 +0200
+
 tmux (1.4-9) unstable; urgency=low
 
   [ Dustin Kirkland ]
