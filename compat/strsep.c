@@ -1,4 +1,4 @@
-/* $Id: strsep.c,v 1.1 2009/08/16 16:15:53 nicm Exp $ */
+/* $Id: strsep.c 2553 2011-07-09 09:42:33Z tcunha $ */
 /*	$OpenBSD: strsep.c,v 1.6 2005/08/08 08:05:37 espie Exp $	*/
 
 /*-
@@ -35,7 +35,7 @@
 
 /*
  * Get next token from string *stringp, where tokens are possibly-empty
- * strings separated by characters from delim.  
+ * strings separated by characters from delim.
  *
  * Writes NULs into the string at *stringp to end tokens.
  * delim need not remain constant from call to call.

@@ -1,4 +1,4 @@
-/* $Id: clock.c,v 1.9 2009/12/04 22:14:47 tcunha Exp $ */
+/* $Id: clock.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>

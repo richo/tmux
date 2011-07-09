@@ -1,4 +1,4 @@
-/* $Id: imsg.h,v 1.5 2010/06/06 00:08:28 tcunha Exp $ */
+/* $Id: imsg.h 2553 2011-07-09 09:42:33Z tcunha $ */
 /*	$OpenBSD: imsg.h,v 1.4 2010/05/26 13:56:07 nicm Exp $	*/
 
 /*
