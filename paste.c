@@ -1,4 +1,4 @@
-/* $Id: paste.c,v 1.15 2010/06/22 23:36:54 tcunha Exp $ */
+/* $Id: paste.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -28,22 +28,9 @@
  * string!
  */
 
-void
-paste_init_stack(struct paste_stack *ps)
-{
-	ARRAY_INIT(ps);
-}
-
-void
-paste_free_stack(struct paste_stack *ps)
-{
-	while (paste_free_top(ps) == 0)
-		;
-}
-
 /* Return each item of the stack in turn. */
 struct paste_buffer *
-paste_walk_stack(struct paste_stack *ps, uint *idx)
+paste_walk_stack(struct paste_stack *ps, u_int *idx)
 {
 	struct paste_buffer	*pb;
 

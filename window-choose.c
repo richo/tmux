@@ -1,4 +1,4 @@
-/* $Id: window-choose.c,v 1.30 2010/05/22 21:56:04 micahcowan Exp $ */
+/* $Id: window-choose.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -127,7 +127,7 @@ window_choose_init(struct window_pane *wp)
 	screen_init(s, screen_size_x(&wp->base), screen_size_y(&wp->base), 0);
 	s->mode &= ~MODE_CURSOR;
 	if (options_get_number(&wp->window->options, "mode-mouse"))
-		s->mode |= MODE_MOUSE;
+		s->mode |= MODE_MOUSE_STANDARD;
 
 	keys = options_get_number(&wp->window->options, "mode-keys");
 	if (keys == MODEKEY_EMACS)

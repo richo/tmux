@@ -1,4 +1,4 @@
-/* $Id: getopt.c,v 1.2 2009/08/09 18:35:38 nicm Exp $ */
+/* $Id: getopt.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
  * Copyright (c) 1987, 1993, 1994

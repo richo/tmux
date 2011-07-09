@@ -1,4 +1,4 @@
-/* $Id: window-clock.c,v 1.12 2010/05/22 21:56:04 micahcowan Exp $ */
+/* $Id: window-clock.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>

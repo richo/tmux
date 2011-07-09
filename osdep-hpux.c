@@ -1,7 +1,7 @@
-/* $Id: cmd-set-window-option.c,v 1.43 2009/12/04 22:11:23 tcunha Exp $ */
+/* $Id: osdep-hpux.c 2553 2011-07-09 09:42:33Z tcunha $ */
 
 /*
- * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
+ * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -18,30 +18,18 @@
 
 #include <sys/types.h>
 
+#include <event.h>
+
 #include "tmux.h"
 
-/*
- * Set a window option. This is just an alias for set-option -w.
- */
-
-int	cmd_set_window_option_exec(struct cmd *, struct cmd_ctx *);
-
-const struct cmd_entry cmd_set_window_option_entry = {
-	"set-window-option", "setw",
-	"[-agu] " CMD_TARGET_WINDOW_USAGE " option [value]",
-	CMD_ARG12, "agu",
-	NULL,
-	cmd_target_parse,
-	cmd_set_window_option_exec,
-	cmd_target_free,
-	cmd_target_print
-};
-
-int
-cmd_set_window_option_exec(struct cmd *self, struct cmd_ctx *ctx)
+char *
+osdep_get_name(unused int fd, unused char *tty)
 {
-	struct cmd_target_data		*data = self->data;
+	return (NULL);
+}
 
-	cmd_set_flag(&data->chflags, 'w');
-	return (cmd_set_option_entry.exec(self, ctx));
+struct event_base *
+osdep_event_init(void)
+{
+	return (event_init());
 }
