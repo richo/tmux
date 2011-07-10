@@ -1,5 +1,6 @@
 tmux (1.5-1) unstable; urgency=low
 
+  [ Karl Ferdinand Ebert ]
   * New upstream version 1.5 which fixes incorrect result from tmux
     has-session (Closes: #621138).
   * Rearrange all patches:
@@ -10,7 +11,11 @@ tmux (1.5-1) unstable; urgency=low
       and kFreeBSD else where.
     - Refresh 07_fix_hyphen.diff and update series.
 
- -- Karl Ferdinand Ebert <kfebert@gmail.com>  Sat, 09 Jul 2011 22:11:24 +0200
+  [ Romain Francoise ]
+  * debian/rules: Don't override dh_auto_clean.
+  * Remove debian/patches/01_install_prefix.diff.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sun, 10 Jul 2011 13:10:23 +0200
 
 tmux (1.4-9) unstable; urgency=low
 
