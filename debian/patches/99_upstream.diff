@@ -1,0 +1,19 @@
+From upstream:
+
+ http://tmux.svn.sf.net/viewvc/tmux/trunk/examples/screen-keys.conf?r1=2221&r2=2562
+
+---
+ examples/screen-keys.conf |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/examples/screen-keys.conf
++++ b/examples/screen-keys.conf
+@@ -26,7 +26,7 @@
+ # screen ^C c 
+ unbind ^C
+ bind ^C new-window
+-bind c
++unbind c
+ bind c new-window
+ 
+ # detach ^D d
