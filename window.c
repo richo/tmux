@@ -1,4 +1,4 @@
-/* $Id: window.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: window.c 2606 2011-10-02 11:32:24Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -451,7 +451,7 @@ window_pane_at_index(struct window *w, u_int idx)
 	struct window_pane	*wp;
 	u_int			 n;
 
-	n = 0;
+	n = options_get_number(&w->options, "pane-base-index");
 	TAILQ_FOREACH(wp, &w->panes, entry) {
 		if (n == idx)
 			return (wp);
@@ -489,7 +489,7 @@ window_pane_index(struct window *w, struct window_pane *wp)
 	struct window_pane	*wq;
 	u_int			 n;
 
-	n = 0;
+	n = options_get_number(&w->options, "pane-base-index");
 	TAILQ_FOREACH(wq, &w->panes, entry) {
 		if (wp == wq)
 			break;
@@ -694,7 +694,7 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 		if (*wp->cmd != '\0') {
 			/* Set SHELL but only if it is currently not useful. */
 			shell = getenv("SHELL");
-			if (shell == NULL || *shell == '\0' || areshell(shell))
+			if (checkshell(shell))
 				setenv("SHELL", wp->shell, 1);
 
 			execl(_PATH_BSHELL, "sh", "-c", wp->cmd, (char *) NULL);

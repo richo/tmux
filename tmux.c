@@ -1,4 +1,4 @@
-/* $Id: tmux.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: tmux.c 2606 2011-10-02 11:32:24Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -101,7 +101,9 @@ getshell(void)
 int
 checkshell(const char *shell)
 {
-	if (shell == NULL || *shell == '\0' || areshell(shell))
+	if (shell == NULL || *shell == '\0' || *shell != '/')
+		return (0);
+	if (areshell(shell))
 		return (0);
 	if (access(shell, X_OK) != 0)
 		return (0);

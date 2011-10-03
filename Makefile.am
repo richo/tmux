@@ -1,4 +1,4 @@
-# $Id: Makefile.am 2556 2011-07-09 13:45:24Z tcunha $
+# $Id: Makefile.am 2592 2011-09-21 16:32:31Z tcunha $
 
 # Obvious program stuff.
 bin_PROGRAMS = tmux
@@ -41,11 +41,6 @@ endif
 else
 CPPFLAGS += -I. -I- -I/usr/local/include
 endif
-endif
-
-# Set flags for static.
-if IS_STATIC
-LDFLAGS += -static
 endif
 
 # Set flags for Solaris.
@@ -141,6 +136,7 @@ dist_tmux_SOURCES = \
 	cmd.c \
 	colour.c \
 	environ.c \
+	format.c \
 	grid-utf8.c \
 	grid-view.c \
 	grid.c \
@@ -225,6 +221,9 @@ nodist_tmux_SOURCES += compat/vis.c compat/unvis.c
 endif
 if NO_STRTONUM
 nodist_tmux_SOURCES += compat/strtonum.c
+endif
+if NO_B64_NTOP
+nodist_tmux_SOURCES += compat/b64_ntop.c
 endif
 
 # Update SF web site.

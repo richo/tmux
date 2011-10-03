@@ -1,4 +1,4 @@
-/* $Id: server-client.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: server-client.c 2583 2011-08-21 12:39:34Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -169,6 +169,8 @@ server_client_lost(struct client *c)
 
 	if (c->cwd != NULL)
 		xfree(c->cwd);
+
+	environ_free(&c->environ);
 
 	close(c->ibuf.fd);
 	imsg_clear(&c->ibuf);
