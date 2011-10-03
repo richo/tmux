@@ -1,4 +1,4 @@
-/* $Id: osdep-sunos.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-sunos.c 2589 2011-09-11 23:54:32Z nicm $ */
 
 /*
  * Copyright (c) 2009 Todd Carson <toc@daybefore.net>
@@ -41,14 +41,13 @@ osdep_get_name(int fd, char *tty)
 	if ((f = open(tty, O_RDONLY)) < 0)
 		return (NULL);
 
-	if ((fstat(f, &st) != 0) ||
-	    (ioctl(f, TIOCGPGRP, &pgrp) != 0)) {
+	if (fstat(f, &st) != 0 || ioctl(f, TIOCGPGRP, &pgrp) != 0) {
 		close(f);
 		return (NULL);
 	}
 	close(f);
 
-	xasprintf(&path, "/proc/%hu/psinfo", pgrp);
+	xasprintf(&path, "/proc/%u/psinfo", (u_int) pgrp);
 	f = open(path, O_RDONLY);
 	xfree(path);
 	if (f < 0)

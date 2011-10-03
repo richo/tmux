@@ -1,4 +1,4 @@
-/* $Id: options-table.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: options-table.c 2587 2011-08-25 21:13:45Z tcunha $ */
 
 /*
  * Copyright (c) 2011 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -34,6 +34,9 @@
 /* Choice option type lists. */
 const char *options_table_mode_keys_list[] = {
 	"emacs", "vi", NULL
+};
+const char *options_table_mode_mouse_list[] = {
+	"off", "on", "copy-mode", NULL
 };
 const char *options_table_clock_mode_style_list[] = {
 	"12", "24", NULL
@@ -483,7 +486,8 @@ const struct options_table_entry window_options_table[] = {
 	},
 
 	{ .name = "mode-mouse",
-	  .type = OPTIONS_TABLE_FLAG,
+	  .type = OPTIONS_TABLE_CHOICE,
+	  .choices = options_table_mode_mouse_list,
 	  .default_num = 0
 	},
 
@@ -515,6 +519,13 @@ const struct options_table_entry window_options_table[] = {
 	  .type = OPTIONS_TABLE_NUMBER,
 	  .minimum = 0,
 	  .maximum = INT_MAX,
+	  .default_num = 0
+	},
+
+	{ .name = "pane-base-index",
+	  .type = OPTIONS_TABLE_NUMBER,
+	  .minimum = 0,
+	  .maximum = USHRT_MAX,
 	  .default_num = 0
 	},
 

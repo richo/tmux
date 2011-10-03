@@ -1,4 +1,4 @@
-/* $Id: status.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: status.c 2583 2011-08-21 12:39:34Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -551,8 +551,10 @@ status_find_job(struct client *c, char **iptr)
 	/* First try in the new tree. */
 	so_find.cmd = cmd;
 	so = RB_FIND(status_out_tree, &c->status_new, &so_find);
-	if (so != NULL && so->out != NULL)
+	if (so != NULL && so->out != NULL) {
+		xfree(cmd);
 		return (so->out);
+	}
 
 	/* If not found at all, start the job and add to the tree. */
 	if (so == NULL) {

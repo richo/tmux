@@ -1,4 +1,4 @@
-/* $Id: cmd-capture-pane.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-capture-pane.c 2595 2011-09-21 16:34:34Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Jonathan Alvarado <radobobo@users.sourceforge.net>
@@ -109,6 +109,7 @@ cmd_capture_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	buffer = args_strtonum(args, 'b', 0, INT_MAX, &cause);
 	if (cause != NULL) {
 		ctx->error(ctx, "buffer %s", cause);
+		xfree(buf);
 		xfree(cause);
 		return (-1);
 	}

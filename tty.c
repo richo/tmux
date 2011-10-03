@@ -1,4 +1,4 @@
-/* $Id: tty.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: tty.c 2586 2011-08-25 21:12:52Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -1545,4 +1545,10 @@ tty_try_88(struct tty *tty, u_char colour, const char *type)
 	xsnprintf(s, sizeof s, "\033[%s;5;%hhum", type, colour);
 	tty_puts(tty, s);
 	return (0);
+}
+
+void
+tty_bell(struct tty *tty)
+{
+	tty_putcode(tty, TTYC_BEL);
 }

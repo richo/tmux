@@ -1,4 +1,4 @@
-/* $Id: cmd-pipe-pane.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-pipe-pane.c 2573 2011-08-04 17:04:08Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -54,11 +54,9 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
 
-	if ((c = cmd_find_client(ctx, NULL)) == NULL)
-		return (-1);
-
 	if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
 		return (-1);
+	c = cmd_find_client(ctx, NULL);
 
 	/* Destroy the old pipe. */
 	old_fd = wp->pipe_fd;

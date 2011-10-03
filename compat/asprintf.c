@@ -1,4 +1,4 @@
-/* $Id: asprintf.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: asprintf.c 2567 2011-07-25 09:56:43Z nicm $ */
 
 /*
  * Copyright (c) 2006 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -44,12 +44,15 @@ int
 vasprintf(char **ret, const char *fmt, va_list ap)
 {
 	int	 n;
+	va_list  ap2;
+
+	va_copy(ap2, ap);
 
 	if ((n = vsnprintf(NULL, 0, fmt, ap)) < 0)
 		goto error;
 
 	*ret = xmalloc(n + 1);
-	if ((n = vsnprintf(*ret, n + 1, fmt, ap)) < 0) {
+	if ((n = vsnprintf(*ret, n + 1, fmt, ap2)) < 0) {
 		xfree(*ret);
 		goto error;
 	}
