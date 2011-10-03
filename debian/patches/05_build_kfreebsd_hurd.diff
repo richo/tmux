@@ -1,9 +1,14 @@
 # Enable kFreeBSD and Hurd specific configure script
+---
+# configure |    2 +-
+# tmux.h    |   16 ++++++++++++++++
+# 2 files changed, 17 insertions(+), 1 deletion(-)
+#
 --- a/configure
 +++ b/configure
-@@ -5637,7 +5637,7 @@
- 
- 		PLATFORM=darwin
+@@ -5565,7 +5565,7 @@
+ $as_echo "dragonfly" >&6; }
+ 		PLATFORM=dragonfly
  		;;
 -	*linux*)
 +	*linux*|GNU|GNU/kFreeBSD)

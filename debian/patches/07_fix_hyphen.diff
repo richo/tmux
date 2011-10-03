@@ -1,4 +1,8 @@
 # fixes lintian's complains about missing hyphens.
+---
+# tmux.1 |   42 +++++++++++++++++++++---------------------
+# 1 file changed, 21 insertions(+), 21 deletions(-)
+#
 --- a/tmux.1
 +++ b/tmux.1
 @@ -450,7 +450,7 @@
@@ -10,7 +14,7 @@
  .Ed
  .Pp
  When dealing with a session that doesn't contain sequential window indexes,
-@@ -504,23 +504,23 @@
+@@ -505,13 +505,13 @@
  .Nm
  commands include:
  .Bd -literal -offset indent
@@ -25,8 +29,10 @@
  
 -new-window ; split-window -d
 +new-window ; split-window \-d
- .Ed
- .Pp
+ 
+ bind-key R source-file ~/.tmux.conf \e; \e
+ 	display-message "source-file done"
+@@ -520,11 +520,11 @@
  Or from
  .Xr sh 1 :
  .Bd -literal -offset indent
@@ -41,7 +47,7 @@
  .Ed
  .Sh CLIENTS AND SESSIONS
  The
-@@ -1007,7 +1007,7 @@
+@@ -1028,7 +1028,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -50,7 +56,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -1024,7 +1024,7 @@
+@@ -1045,7 +1045,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -59,7 +65,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -1041,7 +1041,7 @@
+@@ -1062,7 +1062,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -68,7 +74,7 @@
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
-@@ -1271,7 +1271,7 @@
+@@ -1304,7 +1304,7 @@
  option only opens a new pipe if no previous pipe exists, allowing a pipe to
  be toggled with a single key, for example:
  .Bd -literal -offset indent
@@ -77,7 +83,7 @@
  .Ed
  .It Xo Ic previous-layout
  .Op Fl t Ar target-window
-@@ -2106,7 +2106,7 @@
+@@ -2139,7 +2139,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -86,7 +92,7 @@
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -2310,7 +2310,7 @@
+@@ -2343,7 +2343,7 @@
  .Ic rename-window .
  It may be switched off globally with:
  .Bd -literal -offset indent
@@ -95,7 +101,7 @@
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2776,7 +2776,7 @@
+@@ -2886,7 +2886,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -104,7 +110,7 @@
  This command works only from inside
  .Nm .
  .It Ic clear-history Op Fl t Ar target-pane
-@@ -2981,29 +2981,29 @@
+@@ -3091,29 +3091,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent
