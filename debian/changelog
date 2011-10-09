@@ -1,3 +1,10 @@
+tmux (1.6~svn2608-2) experimental; urgency=low
+
+  * Switch to libevent 2.0 and disable the epoll backend (closes: #631984).
+  * Add /usr/bin/tmux to /etc/shells (closes: #644813).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sun, 09 Oct 2011 17:52:50 +0200
+
 tmux (1.6~svn2608-1) experimental; urgency=low
 
   * New upstream snapshot from Subversion (r2608).
