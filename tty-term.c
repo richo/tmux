@@ -1,4 +1,4 @@
-/* $Id: tty-term.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: tty-term.c 2621 2011-10-23 15:10:22Z tcunha $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -64,6 +64,7 @@ const struct tty_term_code_entry tty_term_codes[NTTYCODE] = {
 	{ TTYC_DIM, TTYCODE_STRING, "dim" },
 	{ TTYC_DL, TTYCODE_STRING, "dl" },
 	{ TTYC_DL1, TTYCODE_STRING, "dl1" },
+	{ TTYC_E3, TTYCODE_STRING, "E3" },
 	{ TTYC_EL, TTYCODE_STRING, "el" },
 	{ TTYC_EL1, TTYCODE_STRING, "el1" },
 	{ TTYC_ENACS, TTYCODE_STRING, "enacs" },

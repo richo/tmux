@@ -1,4 +1,4 @@
-/* $Id: cmd-pipe-pane.c 2573 2011-08-04 17:04:08Z tcunha $ */
+/* $Id: cmd-pipe-pane.c 2628 2011-10-31 13:55:43Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -38,7 +38,7 @@ void	cmd_pipe_pane_error_callback(struct bufferevent *, short, void *);
 const struct cmd_entry cmd_pipe_pane_entry = {
 	"pipe-pane", "pipep",
 	"ot:", 0, 1,
-	CMD_TARGET_PANE_USAGE "[-o] [command]",
+	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
 	0,
 	NULL,
 	NULL,

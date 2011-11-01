@@ -1,4 +1,4 @@
-/* $Id: cmd-show-buffer.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-show-buffer.c 2616 2011-10-23 15:02:20Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -21,7 +21,7 @@
 #include "tmux.h"
 
 /*
- * Show a session paste buffer.
+ * Show a paste buffer.
  */
 
 int	cmd_show_buffer_exec(struct cmd *, struct cmd_ctx *);

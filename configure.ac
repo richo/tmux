@@ -1,4 +1,4 @@
-# $Id: configure.ac 2600 2011-09-29 08:43:01Z nicm $
+# $Id: configure.ac 2625 2011-10-27 23:00:45Z nicm $
 
 # Miscellaneous autofoo bullshit.
 AC_INIT(tmux, 1.6)
@@ -105,11 +105,22 @@ AC_MSG_RESULT($found_glibc)
 AC_SEARCH_LIBS(clock_gettime, rt)
 
 # Look for libevent.
-AC_SEARCH_LIBS(
-	event_init,
-	[event event-1.4 event2],
-	found_libevent=yes,
-	found_libevent=no
+PKG_CHECK_MODULES(
+	LIBEVENT,
+	libevent,
+	[
+		CPPFLAGS="$LIBEVENT_CFLAGS $CPPFLAGS"
+		LIBS="$LIBEVENT_LIBS $LIBS"
+		found_libevent=yes
+	],
+	[
+		AC_SEARCH_LIBS(
+			event_init,
+			[event event-1.4 event2],
+			found_libevent=yes,
+			found_libevent=no
+		)
+	]
 )
 if test "x$found_libevent" = xno; then
 	AC_MSG_ERROR("libevent not found")
@@ -336,7 +347,7 @@ AC_CHECK_FUNCS(
 
 # Check for BSD-style integer types.
 AC_MSG_CHECKING(for BSD-style unsigned types)
-AC_COMPILE_IFELSE(
+AC_COMPILE_IFELSE([AC_LANG_SOURCE(
 	[
 		#include <sys/types.h>
 		#ifdef HAVE_STDINT_H
@@ -346,7 +357,7 @@ AC_COMPILE_IFELSE(
 		#endif	
 		int main(void)
 		{ u_int8_t u8; u_int16_t u16; u_int32_t u32; u_int64_t u64; }
-	],
+       ])],
 	[AC_DEFINE(HAVE_BSD_TYPES) AC_MSG_RESULT(yes)],
 	AC_MSG_RESULT(no)
 )
@@ -370,7 +381,7 @@ fi
 
 # Look for __progname.
 AC_MSG_CHECKING(for __progname)
-AC_LINK_IFELSE(
+AC_LINK_IFELSE([AC_LANG_SOURCE(
 	[
 		#include <stdio.h>
 		#include <stdlib.h>
@@ -380,7 +391,7 @@ AC_LINK_IFELSE(
 			printf("%s\n", cp);
 			exit(0);
 		}
-	],
+       ])],
 	[AC_DEFINE(HAVE___PROGNAME) AC_MSG_RESULT(yes)],
 	AC_MSG_RESULT(no)
 )
