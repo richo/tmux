@@ -1,4 +1,4 @@
-/* $Id: server-fn.c 2596 2011-09-21 16:35:13Z tcunha $ */
+/* $Id: server-fn.c 2621 2011-10-23 15:10:22Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -237,6 +237,7 @@ server_lock_client(struct client *c)
 	tty_stop_tty(&c->tty);
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_SMCUP));
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_CLEAR));
+	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_E3));
 
 	c->flags |= CLIENT_SUSPENDED;
 	server_write_client(c, MSG_LOCK, &lockdata, sizeof lockdata);

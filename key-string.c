@@ -1,4 +1,4 @@
-/* $Id: key-string.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: key-string.c 2622 2011-10-23 15:11:09Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -55,7 +55,11 @@ const struct {
 	{ "Home",	KEYC_HOME },
 	{ "End",	KEYC_END },
 	{ "NPage",	KEYC_NPAGE },
+	{ "PageDown",	KEYC_NPAGE },
+	{ "PgDn",	KEYC_NPAGE },
 	{ "PPage",	KEYC_PPAGE },
+	{ "PageUp",	KEYC_PPAGE },
+	{ "PgUp",	KEYC_PPAGE },
 	{ "Tab",	'\011' },
 	{ "BTab",	KEYC_BTAB },
 	{ "Space",	' ' },

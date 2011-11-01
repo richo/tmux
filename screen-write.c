@@ -1,4 +1,4 @@
-/* $Id: screen-write.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: screen-write.c 2621 2011-10-23 15:10:22Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -983,6 +983,17 @@ screen_write_clearscreen(struct screen_write_ctx *ctx)
 	}
 
 	tty_write(tty_cmd_clearscreen, &ttyctx);
+}
+
+/* Clear entire history. */
+void
+screen_write_clearhistory(struct screen_write_ctx *ctx)
+{
+	struct screen	*s = ctx->s;
+	struct grid	*gd = s->grid;
+
+	grid_move_lines(gd, 0, gd->hsize, gd->sy);
+	gd->hsize = 0;
 }
 
 /* Write cell data. */

@@ -1,4 +1,4 @@
-/* $Id: cmd-if-shell.c 2522 2011-05-29 15:13:36Z tcunha $ */
+/* $Id: cmd-if-shell.c 2627 2011-10-31 13:55:10Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Tiago Cunha <me@tiagocunha.org>
@@ -25,7 +25,7 @@
 #include "tmux.h"
 
 /*
- * Executes a tmux command if a shell command returns true.
+ * Executes a tmux command if a shell command returns true or false.
  */
 
 int	cmd_if_shell_exec(struct cmd *, struct cmd_ctx *);
@@ -35,8 +35,8 @@ void	cmd_if_shell_free(void *);
 
 const struct cmd_entry cmd_if_shell_entry = {
 	"if-shell", "if",
-	"", 2, 2,
-	"shell-command command",
+	"", 2, 3,
+	"shell-command command [command]",
 	0,
 	NULL,
 	NULL,
@@ -44,7 +44,8 @@ const struct cmd_entry cmd_if_shell_entry = {
 };
 
 struct cmd_if_shell_data {
-	char		*cmd;
+	char		*cmd_if;
+	char		*cmd_else;
 	struct cmd_ctx	 ctx;
 };
 
@@ -56,7 +57,11 @@ cmd_if_shell_exec(struct cmd *self, struct cmd_ctx *ctx)
 	const char			*shellcmd = args->argv[0];
 
 	cdata = xmalloc(sizeof *cdata);
-	cdata->cmd = xstrdup(args->argv[1]);
+	cdata->cmd_if = xstrdup(args->argv[1]);
+	if (args->argc == 3)
+		cdata->cmd_else = xstrdup(args->argv[2]);
+	else
+		cdata->cmd_else = NULL;
 	memcpy(&cdata->ctx, ctx, sizeof cdata->ctx);
 
 	if (ctx->cmdclient != NULL)
@@ -75,12 +80,15 @@ cmd_if_shell_callback(struct job *job)
 	struct cmd_if_shell_data	*cdata = job->data;
 	struct cmd_ctx			*ctx = &cdata->ctx;
 	struct cmd_list			*cmdlist;
-	char				*cause;
+	char				*cause, *cmd;
 
-	if (!WIFEXITED(job->status) || WEXITSTATUS(job->status) != 0)
-		return;
-
-	if (cmd_string_parse(cdata->cmd, &cmdlist, &cause) != 0) {
+	if (!WIFEXITED(job->status) || WEXITSTATUS(job->status) != 0) {
+		cmd = cdata->cmd_else;
+		if (cmd == NULL)
+			return;
+	} else
+		cmd = cdata->cmd_if;
+	if (cmd_string_parse(cmd, &cmdlist, &cause) != 0) {
 		if (cause != NULL) {
 			ctx->error(ctx, "%s", cause);
 			xfree(cause);
@@ -107,6 +115,8 @@ cmd_if_shell_free(void *data)
 	if (ctx->curclient != NULL)
 		ctx->curclient->references--;
 
-	xfree(cdata->cmd);
+	if (cdata->cmd_else != NULL)
+		xfree(cdata->cmd_else);
+	xfree(cdata->cmd_if);
 	xfree(cdata);
 }

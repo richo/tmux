@@ -1,4 +1,4 @@
-/* $Id: cmd-set-buffer.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-set-buffer.c 2616 2011-10-23 15:02:20Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -23,7 +23,7 @@
 #include "tmux.h"
 
 /*
- * Add or set a session paste buffer.
+ * Add or set a paste buffer.
  */
 
 int	cmd_set_buffer_exec(struct cmd *, struct cmd_ctx *);
