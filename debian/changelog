@@ -1,3 +1,14 @@
+tmux (1.6~svn2630-2) experimental; urgency=low
+
+  * Redo build flags handling:
+    + Enable hardening flags via dpkg-buildflags, not hardening-includes.
+    + Switch to debhelper compat level 9 to have build flags exported
+      automatically. This adds back -O2, which had gone missing.
+    + Adjust build-depends accordingly.
+  * Enable parallel build in debhelper.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Thu, 03 Nov 2011 22:55:04 +0100
+
 tmux (1.6~svn2630-1) experimental; urgency=low
 
   * New upstream snapshot from Subversion (r2630).
