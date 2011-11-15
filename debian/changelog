@@ -1,3 +1,9 @@
+tmux (1.6~svn2630-3) UNRELEASED; urgency=low
+
+  * Add -Wl,--as-needed to LDFLAGS to lose extra dependency on libncurses5.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Tue, 15 Nov 2011 21:18:37 +0100
+
 tmux (1.6~svn2630-2) experimental; urgency=low
 
   * Redo build flags handling:
