@@ -1,8 +1,9 @@
-tmux (1.6~svn2630-3) UNRELEASED; urgency=low
+tmux (1.6~svn2642-1) experimental; urgency=low
 
+  * New upstream snapshot from Subversion (r2642).
   * Add -Wl,--as-needed to LDFLAGS to lose extra dependency on libncurses5.
 
- -- Romain Francoise <rfrancoise@debian.org>  Tue, 15 Nov 2011 21:18:37 +0100
+ -- Romain Francoise <rfrancoise@debian.org>  Fri, 25 Nov 2011 18:04:01 +0100
 
 tmux (1.6~svn2630-2) experimental; urgency=low
 
