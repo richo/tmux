@@ -1,4 +1,4 @@
-/* $Id: window-copy.c 2626 2011-10-31 13:54:28Z tcunha $ */
+/* $Id: window-copy.c 2640 2011-11-25 13:33:04Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -548,13 +548,13 @@ window_copy_key(struct window_pane *wp, struct session *sess, int key)
 		break;
 	case MODEKEYCOPY_NEXTWORD:
 		word_separators =
-		    options_get_string(&wp->window->options, "word-separators");
+		    options_get_string(&sess->options, "word-separators");
 		for (; np != 0; np--)
 			window_copy_cursor_next_word(wp, word_separators);
 		break;
 	case MODEKEYCOPY_NEXTWORDEND:
 		word_separators =
-		    options_get_string(&wp->window->options, "word-separators");
+		    options_get_string(&sess->options, "word-separators");
 		for (; np != 0; np--)
 			window_copy_cursor_next_word_end(wp, word_separators);
 		break;
@@ -564,7 +564,7 @@ window_copy_key(struct window_pane *wp, struct session *sess, int key)
 		break;
 	case MODEKEYCOPY_PREVIOUSWORD:
 		word_separators =
-		    options_get_string(&wp->window->options, "word-separators");
+		    options_get_string(&sess->options, "word-separators");
 		for (; np != 0; np--)
 			window_copy_cursor_previous_word(wp, word_separators);
 		break;

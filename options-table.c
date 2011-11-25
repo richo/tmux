@@ -1,4 +1,4 @@
-/* $Id: options-table.c 2629 2011-10-31 13:56:16Z tcunha $ */
+/* $Id: options-table.c 2640 2011-11-25 13:33:04Z tcunha $ */
 
 /*
  * Copyright (c) 2011 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -189,6 +189,21 @@ const struct options_table_entry session_options_table[] = {
 	},
 
 	{ .name = "message-bg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 3
+	},
+
+	{ .name = "message-command-attr",
+	  .type = OPTIONS_TABLE_ATTRIBUTES,
+	  .default_num = 0
+	},
+
+	{ .name = "message-command-bg",
+	  .type = OPTIONS_TABLE_COLOUR,
+	  .default_num = 0
+	},
+
+	{ .name = "message-command-fg",
 	  .type = OPTIONS_TABLE_COLOUR,
 	  .default_num = 3
 	},
@@ -405,6 +420,11 @@ const struct options_table_entry session_options_table[] = {
 	  .default_num = 0
 	},
 
+	{ .name = "word-separators",
+	  .type = OPTIONS_TABLE_STRING,
+	  .default_str = " -_@"
+	},
+
 	{ .name = NULL }
 };
 
@@ -597,11 +617,6 @@ const struct options_table_entry window_options_table[] = {
 	{ .name = "window-status-format",
 	  .type = OPTIONS_TABLE_STRING,
 	  .default_str = "#I:#W#F"
-	},
-
-	{ .name = "word-separators",
-	  .type = OPTIONS_TABLE_STRING,
-	  .default_str = " -_@"
 	},
 
 	{ .name = "xterm-keys",

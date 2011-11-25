@@ -14,7 +14,7 @@
 .\" IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING
 .\" OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd $Mdocdate: October 27 2011 $
+.Dd $Mdocdate: November 15 2011 $
 .Dt TMUX 1
 .Os
 .Sh NAME
@@ -841,7 +841,7 @@ and
 characters as word delimiters by default, but this can be adjusted by
 setting the
 .Em word-separators
-window option.
+session option.
 Next word moves to the start of the next word, next word end to the end of the
 next word and previous word to the start of the previous word.
 The three next and previous space keys work similarly but use a space alone as
@@ -867,6 +867,9 @@ For example, to move the cursor forward by ten words, use
 in emacs mode, and
 .Ql 10w
 in vi.
+.Pp
+When copying the selection, the repeat count indicates the buffer index to
+replace, if used.
 .Pp
 Mode key bindings are defined in a set of named tables:
 .Em vi-edit
@@ -1552,10 +1555,8 @@ to
 .Em Home ,
 .Em IC
 (Insert),
-.Em NPage
-(Page Up),
-.Em PPage
-(Page Down),
+.Em NPage/PageDown/PgDn ,
+.Em PPage/PageUp/PgUp ,
 .Em Space ,
 and
 .Em Tab .
@@ -1971,6 +1972,12 @@ from the 256-colour set,
 or a hexadecimal RGB string such as
 .Ql #ffffff ,
 which chooses the closest match from the default 256-colour set.
+.It Ic message-command-attr Ar attributes
+Set status line message attributes when in command mode.
+.It Ic message-command-bg Ar colour
+Set status line message background colour when in command mode.
+.It Ic message-command-fg Ar colour
+Set status line message foreground colour when in command mode.
 .It Ic message-fg Ar colour
 Set status line message foreground colour.
 .It Ic message-limit Ar number
@@ -2285,6 +2292,12 @@ window option is enabled.
 If
 .Ic monitor-silence
 is enabled, prints a message after the interval has expired on a given window.
+.It Ic word-separators Ar string
+Sets the session's conception of what characters are considered word
+separators, for the purposes of the next and previous word commands in
+copy mode.
+The default is
+.Ql \ -_@ .
 .El
 .It Xo Ic set-window-option
 .Op Fl agu
@@ -2524,13 +2537,6 @@ See the
 option for details of special character sequences available.
 The default is
 .Ql #I:#W#F .
-.Pp
-.It Ic word-separators Ar string
-Sets the window's conception of what characters are considered word
-separators, for the purposes of the next and previous word commands in
-copy mode.
-The default is
-.Ql \ -_@ .
 .Pp
 .It Xo Ic xterm-keys
 .Op Ic on | off
