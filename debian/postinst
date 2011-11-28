@@ -7,7 +7,7 @@ if dpkg-maintscript-helper supports rm_conffile; then
 fi
 
 if [ "$1" = "configure" ]; then
-    if [ -z "$2" ] || dpkg --compare-versions "$2" lt "1.6~svn2608-2"; then
+    if [ -z "$2" ] || dpkg --compare-versions "$2" lt "1.5-3"; then
 	add-shell /usr/bin/tmux
     fi
 fi
