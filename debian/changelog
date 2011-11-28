@@ -1,3 +1,17 @@
+tmux (1.5-3) unstable; urgency=low
+
+  * Add /usr/bin/tmux to /etc/shells (closes: #644813).
+  * Switch to libevent 2.0 and disable the epoll backend (closes: #631984).
+  * Redo build flags handling:
+    + Enable hardening flags via dpkg-buildflags, not hardening-includes.
+    + Switch to debhelper compat level 9 to have build flags exported
+      automatically. This adds back -O2, which had gone missing.
+    + Adjust build-depends accordingly.
+  * Enable parallel build in debhelper.
+  * Add -Wl,--as-needed to LDFLAGS to lose extra dependency on libncurses5.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Mon, 28 Nov 2011 21:07:12 +0100
+
 tmux (1.5-2) unstable; urgency=low
 
   * Disable the tmux-cleanup init script on upgrade (the file was removed
