@@ -1,4 +1,4 @@
-/* $Id: tty-term.c 2621 2011-10-23 15:10:22Z tcunha $ */
+/* $Id: tty-term.c 2645 2011-12-06 18:48:45Z tcunha $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -266,6 +266,8 @@ tty_term_override(struct tty_term *term, const char *overrides)
 			} else
 				val = xstrdup("");
 
+			log_debug("%s override: %s %s",
+			    term->name, entstr, removeflag ? "@" : val);
 			for (i = 0; i < NTTYCODE; i++) {
 				ent = &tty_term_codes[i];
 				if (strcmp(entstr, ent->name) != 0)

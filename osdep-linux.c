@@ -1,4 +1,4 @@
-/* $Id: osdep-linux.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-linux.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -58,6 +58,23 @@ osdep_get_name(int fd, unused char *tty)
 
 	fclose(f);
 	return (buf);
+}
+
+char *
+osdep_get_cwd(pid_t pid)
+{
+	static char	 target[MAXPATHLEN + 1];
+	char		*path;
+	ssize_t		 n;
+
+	xasprintf(&path, "/proc/%d/cwd", pid);
+	n = readlink(path, target, MAXPATHLEN);
+	xfree(path);
+	if (n > 0) {
+		target[n] = '\0';
+		return (target);
+	}
+	return (NULL);
 }
 
 struct event_base *

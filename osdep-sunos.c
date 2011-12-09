@@ -1,4 +1,4 @@
-/* $Id: osdep-sunos.c 2589 2011-09-11 23:54:32Z nicm $ */
+/* $Id: osdep-sunos.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Todd Carson <toc@daybefore.net>
@@ -62,6 +62,23 @@ osdep_get_name(int fd, char *tty)
 		return (NULL);
 
 	return (xstrdup(p.pr_fname));
+}
+
+char *
+osdep_get_cwd(pid_t pid)
+{
+	static char	 target[MAXPATHLEN + 1];
+	char		*path;
+	ssize_t		 n;
+
+	xasprintf(&path, "/proc/%u/path/cwd", (u_int) pid);
+	n = readlink(path, target, MAXPATHLEN);
+	xfree(path);
+	if (n > 0) {
+		target[n] = '\0';
+		return (target);
+	}
+	return (NULL);
 }
 
 struct event_base *
