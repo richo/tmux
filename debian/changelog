@@ -1,3 +1,11 @@
+tmux (1.6~svn2647-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2647).
+  * The working directory for new processes is now taken from the active
+    window if there is one (closes: #644781).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Fri, 09 Dec 2011 20:51:42 +0100
+
 tmux (1.6~svn2642-1) experimental; urgency=low
 
   * New upstream snapshot from Subversion (r2642).
