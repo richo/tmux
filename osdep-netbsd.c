@@ -1,4 +1,4 @@
-/* $Id: osdep-netbsd.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-netbsd.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -34,6 +34,7 @@
 
 struct kinfo_proc2	*cmp_procs(struct kinfo_proc2 *, struct kinfo_proc2 *);
 char			*osdep_get_name(int, char *);
+char			*osdep_get_cwd(pid_t);
 struct event_base	*osdep_event_init(void);
 
 struct kinfo_proc2 *
@@ -120,6 +121,12 @@ retry:
 
 error:
 	free(buf);
+	return (NULL);
+}
+
+char *
+osdep_get_cwd(pid_t pid)
+{
 	return (NULL);
 }
 

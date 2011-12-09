@@ -1,4 +1,4 @@
-/* $Id: osdep-openbsd.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-openbsd.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -37,6 +37,7 @@
 
 struct kinfo_proc	*cmp_procs(struct kinfo_proc *, struct kinfo_proc *);
 char			*osdep_get_name(int, char *);
+char			*osdep_get_cwd(pid_t);
 struct event_base	*osdep_event_init(void);
 
 struct kinfo_proc *
@@ -131,6 +132,18 @@ retry:
 error:
 	free(buf);
 	return (NULL);
+}
+
+char*
+osdep_get_cwd(pid_t pid)
+{
+	int		name[] = { CTL_KERN, KERN_PROC_CWD, (int)pid };
+	static char	path[MAXPATHLEN];
+	size_t		pathlen = sizeof path;
+
+	if (sysctl(name, 3, path, &pathlen, NULL, 0) != 0)
+		return (NULL);
+	return (path);
 }
 
 struct event_base *

@@ -1,4 +1,4 @@
-/* $Id: status.c 2641 2011-11-25 13:34:20Z tcunha $ */
+/* $Id: status.c 2643 2011-12-06 18:47:14Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -1156,11 +1156,8 @@ status_prompt_key(struct client *c, int key)
 		/* Find the separator at the end of the word. */
 		while (c->prompt_index != size) {
 			c->prompt_index++;
-			if (strchr(wsep, c->prompt_buffer[c->prompt_index])) {
-				/* Go back to the word. */
-				c->prompt_index--;
+			if (strchr(wsep, c->prompt_buffer[c->prompt_index]))
 				break;
-			}
 		}
 
 		c->flags |= CLIENT_STATUS;

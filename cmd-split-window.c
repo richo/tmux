@@ -1,4 +1,4 @@
-/* $Id: cmd-split-window.c 2638 2011-11-25 13:30:45Z tcunha $ */
+/* $Id: cmd-split-window.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -77,13 +77,7 @@ cmd_split_window_exec(struct cmd *self, struct cmd_ctx *ctx)
 		cmd = options_get_string(&s->options, "default-command");
 	else
 		cmd = args->argv[0];
-	cwd = options_get_string(&s->options, "default-path");
-	if (*cwd == '\0') {
-		if (ctx->cmdclient != NULL && ctx->cmdclient->cwd != NULL)
-			cwd = ctx->cmdclient->cwd;
-		else
-			cwd = s->cwd;
-	}
+	cwd = cmd_get_default_path(ctx);
 
 	type = LAYOUT_TOPBOTTOM;
 	if (args_has(args, 'h'))
