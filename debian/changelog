@@ -1,3 +1,10 @@
+tmux (1.6~svn2647-2) experimental; urgency=low
+
+  * Disable cwd detection in FreeBSD osdep code to fix FTBFS on kfreebsd.
+  * Refresh, clean up and add DEP-3 headers to patches.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 10 Dec 2011 19:38:48 +0100
+
 tmux (1.6~svn2647-1) experimental; urgency=low
 
   * New upstream snapshot from Subversion (r2647).
