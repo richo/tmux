@@ -36,3 +36,31 @@
  /* Client connection. */
  struct client {
  	struct imsgbuf	 ibuf;
+--- a/osdep-freebsd.c
++++ b/osdep-freebsd.c
+@@ -29,7 +29,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#if 0
+ #include <libutil.h>
++#endif
+ 
+ struct kinfo_proc	*cmp_procs(struct kinfo_proc *, struct kinfo_proc *);
+ char			*osdep_get_name(int, char *);
+@@ -135,6 +137,7 @@
+ char *
+ osdep_get_cwd(pid_t pid)
+ {
++#if 0
+ 	static char		 wd[PATH_MAX];
+ 	struct kinfo_file	*info = NULL;
+ 	int			 nrecords, i;
+@@ -151,6 +154,7 @@
+ 	}
+ 
+ 	free(info);
++#endif
+ 	return (NULL);
+ }
+ 
