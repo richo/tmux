@@ -1,8 +1,7 @@
-# fixes lintian's complains about missing hyphens.
----
-# tmux.1 |   42 +++++++++++++++++++++---------------------
-# 1 file changed, 21 insertions(+), 21 deletions(-)
-#
+Description: Fix lintian warning about hyphen used as minus sign
+Author: Karl Ferdinand Ebert <kfebert@gmail.com>
+Forwarded: not-needed
+
 --- a/tmux.1
 +++ b/tmux.1
 @@ -450,7 +450,7 @@
@@ -47,7 +46,7 @@
  .Ed
  .Sh CLIENTS AND SESSIONS
  The
-@@ -1028,7 +1028,7 @@
+@@ -1041,7 +1041,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -56,7 +55,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -1045,7 +1045,7 @@
+@@ -1058,7 +1058,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -65,7 +64,7 @@
  This command works only from inside
  .Nm .
  .It Xo
-@@ -1062,7 +1062,7 @@
+@@ -1075,7 +1075,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -74,7 +73,7 @@
  This command works only from inside
  .Nm .
  .It Ic display-panes Op Fl t Ar target-client
-@@ -1304,7 +1304,7 @@
+@@ -1317,7 +1317,7 @@
  option only opens a new pipe if no previous pipe exists, allowing a pipe to
  be toggled with a single key, for example:
  .Bd -literal -offset indent
@@ -83,7 +82,7 @@
  .Ed
  .It Xo Ic previous-layout
  .Op Fl t Ar target-window
-@@ -2139,7 +2139,7 @@
+@@ -2156,7 +2156,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -92,7 +91,7 @@
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -2343,7 +2343,7 @@
+@@ -2366,7 +2366,7 @@
  .Ic rename-window .
  It may be switched off globally with:
  .Bd -literal -offset indent
@@ -101,7 +100,7 @@
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2886,7 +2886,7 @@
+@@ -2914,7 +2914,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -110,7 +109,7 @@
  This command works only from inside
  .Nm .
  .It Ic clear-history Op Fl t Ar target-pane
-@@ -3091,29 +3091,29 @@
+@@ -3121,29 +3121,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent
