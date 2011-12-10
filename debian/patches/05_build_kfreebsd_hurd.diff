@@ -4,17 +4,6 @@
 # tmux.h    |   16 ++++++++++++++++
 # 2 files changed, 17 insertions(+), 1 deletion(-)
 #
---- a/configure
-+++ b/configure
-@@ -5565,7 +5565,7 @@
- $as_echo "dragonfly" >&6; }
- 		PLATFORM=dragonfly
- 		;;
--	*linux*)
-+	*linux*|GNU|GNU/kFreeBSD)
- 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: linux" >&5
- $as_echo "linux" >&6; }
- 		PLATFORM=linux
 --- a/tmux.h
 +++ b/tmux.h
 @@ -396,6 +396,18 @@
