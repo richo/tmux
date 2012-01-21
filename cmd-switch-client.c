@@ -1,4 +1,4 @@
-/* $Id: cmd-switch-client.c 2582 2011-08-21 12:38:55Z tcunha $ */
+/* $Id: cmd-switch-client.c 2665 2012-01-21 19:30:07Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -108,6 +108,7 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_ctx *ctx)
 	recalculate_sizes();
 	server_check_unattached();
 	server_redraw_client(c);
+	s->curw->flags &= ~WINLINK_ALERTFLAGS;
 
 	return (0);
 }

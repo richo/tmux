@@ -593,7 +593,7 @@ session.
 .D1 (alias: Ic detach )
 Detach the current client if bound to a key, the client specified with
 .Fl t ,
-or all clients currently attached to to the session specified by
+or all clients currently attached to the session specified by
 .Fl s .
 If
 .Fl P
@@ -1638,6 +1638,7 @@ are listed; this may be one of:
 or
 .Em emacs-copy .
 .It Xo Ic send-keys
+.Fl R
 .Op Fl t Ar target-pane
 .Ar key Ar ...
 .Xc
@@ -1652,9 +1653,16 @@ or
 ) to send; if the string is not recognised as a key, it is sent as a series of
 characters.
 All arguments are sent sequentially from first to last.
-.It Ic send-prefix Op Fl t Ar target-pane
-Send the prefix key to a window as if it was pressed.
-If multiple prefix keys are configured, only the first is sent.
+The
+.Fl R
+flag causes the terminal state to be reset.
+.It Xo Ic send-prefix
+.Op Fl 2
+.Op Fl t Ar target-pane
+.Xc
+Send the prefix key, or with
+.Fl 2
+the secondary prefix key, to a window as if it was pressed.
 .It Xo Ic unbind-key
 .Op Fl acn
 .Op Fl t Ar key-table
@@ -1849,6 +1857,16 @@ Set the default working directory for new panes.
 If empty (the default), the working directory is determined from the process
 running in the active pane, from the command line environment or from the
 working directory where the session was created.
+If
+.Ar path
+is "$HOME" or "~", the value of the
+.Ev HOME
+environment variable is used.
+If
+.Ar path
+is ".", the working directory when
+.Nm
+was started is used.
 .It Ic default-shell Ar path
 Specify the default shell.
 This is used as the login shell for new windows when the
@@ -1966,6 +1984,10 @@ is one of:
 .Ic magenta ,
 .Ic cyan ,
 .Ic white ,
+aixterm bright variants (if supported:
+.Ic brightred ,
+.Ic brightgreen ,
+and so on),
 .Ic colour0
 to
 .Ic colour255
@@ -2015,11 +2037,10 @@ Set the pane border colour for the currently active pane.
 .It Ic pane-border-bg Ar colour
 .It Ic pane-border-fg Ar colour
 Set the pane border colour for panes aside from the active pane.
-.It Ic prefix Ar keys
-Set the keys accepted as a prefix key.
-.Ar keys
-is a comma-separated list of key names, each of which individually behave as
-the prefix key.
+.It Ic prefix Ar key
+Set the key accepted as a prefix key.
+.It Ic prefix2 Ar key
+Set a secondary key accepted as a prefix key.
 .It Ic repeat-time Ar time
 Allow multiple commands to be entered without pressing the prefix-key again
 in the specified
@@ -2048,7 +2069,14 @@ command to destroy it.
 .It Xo Ic set-titles
 .Op Ic on | off
 .Xc
-Attempt to set the window title using the \ee]2;...\e007 xterm code if
+Attempt to set the client terminal title using the
+.Em tsl
+and
+.Em fsl
+.Xr terminfo 5
+entries if they exist.
+.Nm
+automatically sets these to the \ee]2;...\e007 sequence if
 the terminal appears to be an xterm.
 This option is off by default.
 Note that elinks
@@ -2114,7 +2142,7 @@ may contain any of the following special character sequences:
 .It Li "#I" Ta "Current window index"
 .It Li "#P" Ta "Current pane index"
 .It Li "#S" Ta "Session name"
-.It Li "#T" Ta "Current window title"
+.It Li "#T" Ta "Current pane title"
 .It Li "#W" Ta "Current window name"
 .It Li "##" Ta "A literal" Ql #
 .El
@@ -2133,13 +2161,9 @@ global environment set (see the
 .Sx ENVIRONMENT
 section).
 .Pp
-The window title (#T) is the title set by the program running within the window
-using the OSC title setting sequence, for example:
-.Bd -literal -offset indent
-$ printf '\e033]2;My Title\e033\e\e'
-.Ed
-.Pp
-When a window is first created, its title is the hostname.
+For details on how the names and titles can be set see the
+.Sx "NAMES AND TITLES"
+section.
 .Pp
 #[attributes] allows a comma-separated list of attributes to be specified,
 these may be
@@ -2333,6 +2357,13 @@ this option is good for full-screen programs which support
 .Dv SIGWINCH
 and poor for interactive programs such as shells.
 .Pp
+.It Xo Ic allow-rename
+.Op Ic on | off
+.Xc
+Allow programs to change the window name using a terminal escape
+sequence (\\033k...\\033\\\\).
+The default is on.
+.Pp
 .It Xo Ic alternate-screen
 .Op Ic on | off
 .Xc
@@ -2363,7 +2394,8 @@ is specified at creation with
 or
 .Ic new-session ,
 or later with
-.Ic rename-window .
+.Ic rename-window ,
+or with a terminal escape sequence.
 It may be switched off globally with:
 .Bd -literal -offset indent
 set-window-option -g automatic-rename off
@@ -2499,15 +2531,32 @@ Instructs
 .Nm
 to expect UTF-8 sequences to appear in this window.
 .Pp
-.It Ic window-status-alert-attr Ar attributes
-Set status line attributes for windows which have an alert (bell, activity
-or content).
+.It Ic window-status-bell-attr Ar attributes
+Set status line attributes for windows which have a bell alert.
 .Pp
-.It Ic window-status-alert-bg Ar colour
-Set status line background colour for windows with an alert.
+.It Ic window-status-bell-bg Ar colour
+Set status line background colour for windows with a bell alert.
 .Pp
-.It Ic window-status-alert-fg Ar colour
-Set status line foreground colour for windows with an alert.
+.It Ic window-status-bell-fg Ar colour
+Set status line foreground colour for windows with a bell alert.
+.Pp
+.It Ic window-status-content-attr Ar attributes
+Set status line attributes for windows which have a content alert.
+.Pp
+.It Ic window-status-content-bg Ar colour
+Set status line background colour for windows with a content alert.
+.Pp
+.It Ic window-status-content-fg Ar colour
+Set status line foreground colour for windows with a content alert.
+.Pp
+.It Ic window-status-activity-attr Ar attributes
+Set status line attributes for windows which have an activity (or silence) alert.
+.Pp
+.It Ic window-status-activity-bg Ar colour
+Set status line background colour for windows with an activity alert.
+.Pp
+.It Ic window-status-activity-fg Ar colour
+Set status line foreground colour for windows with an activity alert.
 .Pp
 .It Ic window-status-attr Ar attributes
 Set status line attributes for a single window.
@@ -2658,6 +2707,62 @@ The following variables are available, where appropriate:
 .It Li "window_name" Ta "Name of window"
 .It Li "window_width" Ta "Width of window"
 .El
+.Sh NAMES AND TITLES
+.Nm
+distinguishes between names and titles.
+Windows and sessions have names, which may be used to specify them in targets
+and are displayed in the status line and various lists: the name is the
+.Nm
+identifier for a window or session.
+Only panes have titles.
+A pane's title is typically set by the program running inside the pane and
+is not modified by
+.Nm .
+It is the same mechanism used to set for example the
+.Xr xterm 1
+window title in an
+.Xr X 7
+window manager.
+Windows themselves do not have titles - a window's title is the title of it's
+active pane.
+.Nm
+itself may set the title of the terminal in which the client is running, see
+the
+.Ic set-titles
+option.
+.Pp
+A session's name is set with the
+.Ic new-session
+and
+.Ic rename-session
+commands.
+A window's name is set with one of:
+.Bl -enum -width Ds
+.It
+A command argument (such as
+.Fl n
+for
+.Ic new-window
+or
+.Ic new-session ) .
+.It
+An escape sequence:
+.Bd -literal -offset indent
+$ printf '\e033kWINDOW_NAME\e033\e\e'
+.Ed
+.It
+Automatic renaming, which sets the name to the active command in the window's
+active pane.
+See the
+.Ic automatic-rename
+option.
+.El
+.Pp
+When a pane is first created, its title is the hostname.
+A pane's title can be set via the OSC title setting sequence, for example:
+.Bd -literal -offset indent
+$ printf '\e033]2;My Title\e033\e\e'
+.Ed
 .Sh ENVIRONMENT
 When the server is started,
 .Nm
@@ -2721,8 +2826,8 @@ terminal.
 By default, the status line is enabled (it may be disabled with the
 .Ic status
 session option) and contains, from left-to-right: the name of the current
-session in square brackets; the window list; the current window title in double
-quotes; and the time and date.
+session in square brackets; the window list; the title of the active pane
+in double quotes; and the time and date.
 .Pp
 The status line is made of three parts: configurable left and right sections
 (which may contain dynamic content such as the time or output from a shell

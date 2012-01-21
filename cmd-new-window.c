@@ -1,4 +1,4 @@
-/* $Id: cmd-new-window.c 2647 2011-12-09 16:37:29Z nicm $ */
+/* $Id: cmd-new-window.c 2664 2012-01-20 21:21:32Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -44,7 +44,8 @@ cmd_new_window_exec(struct cmd *self, struct cmd_ctx *ctx)
 	struct args	*args = self->args;
 	struct session	*s;
 	struct winlink	*wl;
-	char		*cmd, *cwd, *cause;
+	const char     	*cmd, *cwd;
+	char		*cause;
 	int		 idx, last, detached;
 
 	if (args_has(args, 'a')) {

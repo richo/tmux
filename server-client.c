@@ -1,4 +1,4 @@
-/* $Id: server-client.c 2583 2011-08-21 12:39:34Z tcunha $ */
+/* $Id: server-client.c 2669 2012-01-21 19:36:40Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -272,9 +272,7 @@ server_client_handle_key(int key, struct mouse_event *mouse, void *data)
 	struct options		*oo;
 	struct timeval		 tv;
 	struct key_binding	*bd;
-	struct keylist		*keylist;
 	int		      	 xtimeout, isprefix;
-	u_int			 i;
 
 	/* Check the client is good to accept input. */
 	if ((c->flags & (CLIENT_DEAD|CLIENT_SUSPENDED)) != 0)
@@ -319,6 +317,8 @@ server_client_handle_key(int key, struct mouse_event *mouse, void *data)
 		if (c->flags & CLIENT_READONLY)
 			return;
 		if (options_get_number(oo, "mouse-select-pane") &&
+		    (!(options_get_number(oo, "status") &&
+		       mouse->y + 1 == c->tty.sy)) &&
 		    ((!(mouse->b & MOUSE_DRAG) && mouse->b != MOUSE_UP) ||
 		    wp->mode != &window_copy_mode)) {
 			/*
@@ -357,14 +357,12 @@ server_client_handle_key(int key, struct mouse_event *mouse, void *data)
 	}
 
 	/* Is this a prefix key? */
-	keylist = options_get_data(&c->session->options, "prefix");
-	isprefix = 0;
-	for (i = 0; i < ARRAY_LENGTH(keylist); i++) {
-		if (key == ARRAY_ITEM(keylist, i)) {
-			isprefix = 1;
-			break;
-		}
-	}
+	if (key == options_get_number(&c->session->options, "prefix"))
+		isprefix = 1;
+	else if (key == options_get_number(&c->session->options, "prefix2"))
+		isprefix = 1;
+	else
+		isprefix = 0;
 
 	/* No previous prefix key. */
 	if (!(c->flags & CLIENT_PREFIX)) {

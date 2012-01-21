@@ -1,4 +1,4 @@
-/* $Id: cmd.c 2647 2011-12-09 16:37:29Z nicm $ */
+/* $Id: cmd.c 2664 2012-01-20 21:21:32Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -1214,17 +1214,24 @@ cmd_template_replace(char *template, const char *s, int idx)
 }
 
 /* Return the default path for a new pane. */
-char *
+const char *
 cmd_get_default_path(struct cmd_ctx *ctx)
 {
-	char			*cwd;
+	const char		*cwd;
 	struct session		*s;
 	struct window_pane	*wp;
+	struct environ_entry	*envent;
 
 	if ((s = cmd_current_session(ctx, 0)) == NULL)
 		return (NULL);
 
 	cwd = options_get_string(&s->options, "default-path");
+	if ((cwd[0] == '~' && cwd[1] == '\0') || !strcmp(cwd, "$HOME")) {
+		envent = environ_find(&global_environ, "HOME");
+		if (envent != NULL && *envent->value != '\0')
+			return envent->value;
+		cwd = "";
+	}
 	if (*cwd == '\0') {
 		if (ctx->cmdclient != NULL && ctx->cmdclient->cwd != NULL)
 			return (ctx->cmdclient->cwd);

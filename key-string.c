@@ -1,4 +1,4 @@
-/* $Id: key-string.c 2622 2011-10-23 15:11:09Z tcunha $ */
+/* $Id: key-string.c 2669 2012-01-21 19:36:40Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -187,6 +187,10 @@ key_string_lookup_key(int key)
 	u_int	   	i;
 
 	*out = '\0';
+
+	/* Handle no key. */
+	if (key == KEYC_NONE)
+		return ("none");
 
 	/*
 	 * Special case: display C-@ as C-Space. Could do this below in
