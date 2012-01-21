@@ -82,7 +82,7 @@ Forwarded: not-needed
  .Ed
  .It Xo Ic previous-layout
  .Op Fl t Ar target-window
-@@ -2156,7 +2156,7 @@
+@@ -2180,7 +2180,7 @@
  Examples are:
  .Bd -literal -offset indent
  #(sysctl vm.loadavg)
@@ -91,8 +91,8 @@ Forwarded: not-needed
  .Ed
  .Pp
  Where appropriate, special character sequences may be prefixed with a number to
-@@ -2366,7 +2366,7 @@
- .Ic rename-window .
+@@ -2398,7 +2398,7 @@
+ or with a terminal escape sequence.
  It may be switched off globally with:
  .Bd -literal -offset indent
 -set-window-option -g automatic-rename off
@@ -100,7 +100,7 @@ Forwarded: not-needed
  .Ed
  .Pp
  .It Ic clock-mode-colour Ar colour
-@@ -2914,7 +2914,7 @@
+@@ -3019,7 +3019,7 @@
  and the result executed as a command.
  If
  .Ar template
@@ -109,7 +109,7 @@ Forwarded: not-needed
  This command works only from inside
  .Nm .
  .It Ic clear-history Op Fl t Ar target-pane
-@@ -3121,29 +3121,29 @@
+@@ -3226,29 +3226,29 @@
  .Pp
  Changing the default prefix key:
  .Bd -literal -offset indent
