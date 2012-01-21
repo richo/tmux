@@ -1,3 +1,11 @@
+tmux (1.6~svn2670-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2670).
+  * The new window option 'allow-rename' can be used to disable the screen
+    title setting escape sequence (closes: #654882).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 21 Jan 2012 21:38:18 +0100
+
 tmux (1.6~svn2647-2) experimental; urgency=low
 
   * Disable cwd detection in FreeBSD osdep code to fix FTBFS on kfreebsd.
