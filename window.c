@@ -1,4 +1,4 @@
-/* $Id: window.c 2638 2011-11-25 13:30:45Z tcunha $ */
+/* $Id: window.c 2658 2012-01-20 20:18:20Z nicm $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -681,6 +681,10 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 		if (tio != NULL)
 			memcpy(tio2.c_cc, tio->c_cc, sizeof tio2.c_cc);
 		tio2.c_cc[VERASE] = '\177';
+#ifdef IUTF8
+		if (options_get_number(&wp->window->options, "utf8"))
+			tio2.c_iflag |= IUTF8;
+#endif
 		if (tcsetattr(STDIN_FILENO, TCSANOW, &tio2) != 0)
 			fatal("tcgetattr failed");
 
