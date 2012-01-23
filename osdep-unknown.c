@@ -1,4 +1,4 @@
-/* $Id: osdep-unknown.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-unknown.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -24,6 +24,12 @@
 
 char *
 osdep_get_name(unused int fd, unused char *tty)
+{
+	return (NULL);
+}
+
+char *
+osdep_get_cwd(pid_t pid)
 {
 	return (NULL);
 }

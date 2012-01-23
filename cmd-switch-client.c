@@ -1,4 +1,4 @@
-/* $Id: cmd-switch-client.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-switch-client.c 2665 2012-01-21 19:30:07Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -32,9 +32,9 @@ int	cmd_switch_client_exec(struct cmd *, struct cmd_ctx *);
 
 const struct cmd_entry cmd_switch_client_entry = {
 	"switch-client", "switchc",
-	"lc:npt:", 0, 0,
-	"[-lnp] [-c target-client] [-t target-session]",
-	0,
+	"lc:npt:r", 0, 0,
+	"[-lnpr] [-c target-client] [-t target-session]",
+	CMD_READONLY,
 	cmd_switch_client_key_binding,
 	NULL,
 	cmd_switch_client_exec
@@ -67,6 +67,16 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_ctx *ctx)
 	if ((c = cmd_find_client(ctx, args_get(args, 'c'))) == NULL)
 		return (-1);
 
+	if (args_has(args, 'r')) {
+		if (c->flags & CLIENT_READONLY) {
+			c->flags &= ~CLIENT_READONLY;
+			ctx->info(ctx, "made client writable");
+		} else {
+			c->flags |= CLIENT_READONLY;
+			ctx->info(ctx, "made client read-only");
+		}
+	}
+
 	s = NULL;
 	if (args_has(args, 'n')) {
 		if ((s = session_next_session(c->session)) == NULL) {
@@ -98,6 +108,7 @@ cmd_switch_client_exec(struct cmd *self, struct cmd_ctx *ctx)
 	recalculate_sizes();
 	server_check_unattached();
 	server_redraw_client(c);
+	s->curw->flags &= ~WINLINK_ALERTFLAGS;
 
 	return (0);
 }

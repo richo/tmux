@@ -1,4 +1,4 @@
-/* $Id: screen-write.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: screen-write.c 2666 2012-01-21 19:31:59Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -44,6 +44,24 @@ screen_write_start(
 void
 screen_write_stop(unused struct screen_write_ctx *ctx)
 {
+}
+
+
+/* Reset screen state. */
+void
+screen_write_reset(struct screen_write_ctx *ctx)
+{
+	screen_reset_tabs(ctx->s);
+
+	screen_write_scrollregion(ctx, 0, screen_size_y(ctx->s) - 1);
+
+	screen_write_insertmode(ctx, 0);
+	screen_write_kcursormode(ctx, 0);
+	screen_write_kkeypadmode(ctx, 0);
+	screen_write_mousemode_off(ctx);
+
+	screen_write_clearscreen(ctx);
+	screen_write_cursormove(ctx, 0, 0);
 }
 
 /* Write character. */
@@ -983,6 +1001,17 @@ screen_write_clearscreen(struct screen_write_ctx *ctx)
 	}
 
 	tty_write(tty_cmd_clearscreen, &ttyctx);
+}
+
+/* Clear entire history. */
+void
+screen_write_clearhistory(struct screen_write_ctx *ctx)
+{
+	struct screen	*s = ctx->s;
+	struct grid	*gd = s->grid;
+
+	grid_move_lines(gd, 0, gd->hsize, gd->sy);
+	gd->hsize = 0;
 }
 
 /* Write cell data. */

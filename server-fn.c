@@ -1,4 +1,4 @@
-/* $Id: server-fn.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: server-fn.c 2621 2011-10-23 15:10:22Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -237,6 +237,7 @@ server_lock_client(struct client *c)
 	tty_stop_tty(&c->tty);
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_SMCUP));
 	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_CLEAR));
+	tty_raw(&c->tty, tty_term_string(c->tty.term, TTYC_E3));
 
 	c->flags |= CLIENT_SUSPENDED;
 	server_write_client(c, MSG_LOCK, &lockdata, sizeof lockdata);
@@ -329,16 +330,32 @@ server_unlink_window(struct session *s, struct winlink *wl)
 void
 server_destroy_pane(struct window_pane *wp)
 {
-	struct window	*w = wp->window;
+	struct window		*w = wp->window;
+	int			 old_fd;
+	struct screen_write_ctx	 ctx;
+	struct grid_cell	 gc;
 
+	old_fd = wp->fd;
 	if (wp->fd != -1) {
 		close(wp->fd);
 		bufferevent_free(wp->event);
 		wp->fd = -1;
 	}
 
-	if (options_get_number(&w->options, "remain-on-exit"))
+	if (options_get_number(&w->options, "remain-on-exit")) {
+		if (old_fd == -1)
+			return;
+		screen_write_start(&ctx, wp, &wp->base);
+		screen_write_scrollregion(&ctx, 0, screen_size_y(ctx.s) - 1);
+		screen_write_cursormove(&ctx, 0, screen_size_y(ctx.s) - 1);
+		screen_write_linefeed(&ctx, 1);
+		memcpy(&gc, &grid_default_cell, sizeof gc);
+		gc.attr |= GRID_ATTR_BRIGHT;
+		screen_write_puts(&ctx, &gc, "Pane is dead");
+		screen_write_stop(&ctx);
+		wp->flags |= PANE_REDRAW;
 		return;
+	}
 
 	layout_close_pane(wp);
 	window_remove_pane(w, wp);

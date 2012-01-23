@@ -1,4 +1,4 @@
-/* $Id: window.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: window.c 2658 2012-01-20 20:18:20Z nicm $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -451,7 +451,7 @@ window_pane_at_index(struct window *w, u_int idx)
 	struct window_pane	*wp;
 	u_int			 n;
 
-	n = 0;
+	n = options_get_number(&w->options, "pane-base-index");
 	TAILQ_FOREACH(wp, &w->panes, entry) {
 		if (n == idx)
 			return (wp);
@@ -483,19 +483,21 @@ window_pane_previous_by_number(struct window *w, struct window_pane *wp,
 	return (wp);
 }
 
-u_int
-window_pane_index(struct window *w, struct window_pane *wp)
+int
+window_pane_index(struct window_pane *wp, u_int *i)
 {
 	struct window_pane	*wq;
-	u_int			 n;
+	struct window		*w = wp->window;
 
-	n = 0;
+	*i = options_get_number(&w->options, "pane-base-index");
 	TAILQ_FOREACH(wq, &w->panes, entry) {
-		if (wp == wq)
-			break;
-		n++;
+		if (wp == wq) {
+			return (0);
+		}
+		(*i)++;
 	}
-	return (n);
+
+	return (-1);
 }
 
 u_int
@@ -679,6 +681,10 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 		if (tio != NULL)
 			memcpy(tio2.c_cc, tio->c_cc, sizeof tio2.c_cc);
 		tio2.c_cc[VERASE] = '\177';
+#ifdef IUTF8
+		if (options_get_number(&wp->window->options, "utf8"))
+			tio2.c_iflag |= IUTF8;
+#endif
 		if (tcsetattr(STDIN_FILENO, TCSANOW, &tio2) != 0)
 			fatal("tcgetattr failed");
 
@@ -694,7 +700,7 @@ window_pane_spawn(struct window_pane *wp, const char *cmd, const char *shell,
 		if (*wp->cmd != '\0') {
 			/* Set SHELL but only if it is currently not useful. */
 			shell = getenv("SHELL");
-			if (shell == NULL || *shell == '\0' || areshell(shell))
+			if (checkshell(shell))
 				setenv("SHELL", wp->shell, 1);
 
 			execl(_PATH_BSHELL, "sh", "-c", wp->cmd, (char *) NULL);

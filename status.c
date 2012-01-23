@@ -1,4 +1,4 @@
-/* $Id: status.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: status.c 2663 2012-01-20 21:20:35Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -372,6 +372,7 @@ status_replace1(struct client *c, struct session *s, struct winlink *wl,
 	char	ch, tmp[256], *ptr, *endptr, *freeptr;
 	size_t	ptrlen;
 	long	limit;
+	u_int	idx;
 
 	if (s == NULL)
 		s = c->session;
@@ -422,8 +423,10 @@ status_replace1(struct client *c, struct session *s, struct winlink *wl,
 		ptr = tmp;
 		goto do_replace;
 	case 'P':
+		if (window_pane_index(wp, &idx) != 0)
+			fatalx("index not found");
 		xsnprintf(
-		    tmp, sizeof tmp, "%u", window_pane_index(wl->window, wp));
+		    tmp, sizeof tmp, "%u", idx);
 		ptr = tmp;
 		goto do_replace;
 	case 'S':
@@ -551,8 +554,10 @@ status_find_job(struct client *c, char **iptr)
 	/* First try in the new tree. */
 	so_find.cmd = cmd;
 	so = RB_FIND(status_out_tree, &c->status_new, &so_find);
-	if (so != NULL && so->out != NULL)
+	if (so != NULL && so->out != NULL) {
+		xfree(cmd);
 		return (so->out);
+	}
 
 	/* If not found at all, start the job and add to the tree. */
 	if (so == NULL) {
@@ -679,14 +684,34 @@ status_print(
 		fmt = options_get_string(oo, "window-status-current-format");
 	}
 
-	if (wl->flags & WINLINK_ALERTFLAGS) {
-		fg = options_get_number(oo, "window-status-alert-fg");
+	if (wl->flags & WINLINK_BELL) {
+		fg = options_get_number(oo, "window-status-bell-fg");
 		if (fg != 8)
 			colour_set_fg(gc, fg);
-		bg = options_get_number(oo, "window-status-alert-bg");
+		bg = options_get_number(oo, "window-status-bell-bg");
 		if (bg != 8)
 			colour_set_bg(gc, bg);
-		attr = options_get_number(oo, "window-status-alert-attr");
+		attr = options_get_number(oo, "window-status-bell-attr");
+		if (attr != 0)
+			gc->attr = attr;
+	} else if (wl->flags & WINLINK_CONTENT) {
+		fg = options_get_number(oo, "window-status-content-fg");
+		if (fg != 8)
+			colour_set_fg(gc, fg);
+		bg = options_get_number(oo, "window-status-content-bg");
+		if (bg != 8)
+			colour_set_bg(gc, bg);
+		attr = options_get_number(oo, "window-status-content-attr");
+		if (attr != 0)
+			gc->attr = attr;
+	} else if (wl->flags & (WINLINK_ACTIVITY|WINLINK_SILENCE)) {
+		fg = options_get_number(oo, "window-status-activity-fg");
+		if (fg != 8)
+			colour_set_fg(gc, fg);
+		bg = options_get_number(oo, "window-status-activity-bg");
+		if (bg != 8)
+			colour_set_bg(gc, bg);
+		attr = options_get_number(oo, "window-status-activity-attr");
 		if (attr != 0)
 			gc->attr = attr;
 	}
@@ -917,9 +942,16 @@ status_prompt_redraw(struct client *c)
 	off = 0;
 
 	memcpy(&gc, &grid_default_cell, sizeof gc);
-	colour_set_fg(&gc, options_get_number(&s->options, "message-fg"));
-	colour_set_bg(&gc, options_get_number(&s->options, "message-bg"));
-	gc.attr |= options_get_number(&s->options, "message-attr");
+	/* Change colours for command mode. */
+	if (c->prompt_mdata.mode == 1) {
+		colour_set_fg(&gc, options_get_number(&s->options, "message-command-fg"));
+		colour_set_bg(&gc, options_get_number(&s->options, "message-command-bg"));
+		gc.attr |= options_get_number(&s->options, "message-command-attr");
+	} else {
+		colour_set_fg(&gc, options_get_number(&s->options, "message-fg"));
+		colour_set_bg(&gc, options_get_number(&s->options, "message-bg"));
+		gc.attr |= options_get_number(&s->options, "message-attr");
+	}
 
 	screen_write_start(&ctx, NULL, &c->status);
 
@@ -961,9 +993,12 @@ status_prompt_redraw(struct client *c)
 void
 status_prompt_key(struct client *c, int key)
 {
+	struct session		*sess = c->session;
+	struct options		*oo = &sess->options;
 	struct paste_buffer	*pb;
-	char   			*s, *first, *last, word[64], swapc;
-	const char              *histstr;
+	char			*s, *first, *last, word[64], swapc;
+	const char		*histstr;
+	const char		*wsep = NULL;
 	u_char			 ch;
 	size_t			 size, n, off, idx;
 
@@ -975,7 +1010,12 @@ status_prompt_key(struct client *c, int key)
 			c->flags |= CLIENT_STATUS;
 		}
 		break;
+	case MODEKEYEDIT_SWITCHMODE:
+		c->flags |= CLIENT_STATUS;
+		break;
 	case MODEKEYEDIT_SWITCHMODEAPPEND:
+		c->flags |= CLIENT_STATUS;
+		/* FALLTHROUGH */
 	case MODEKEYEDIT_CURSORRIGHT:
 		if (c->prompt_index < size) {
 			c->prompt_index++;
@@ -1075,11 +1115,112 @@ status_prompt_key(struct client *c, int key)
 			c->flags |= CLIENT_STATUS;
 		}
 		break;
+	case MODEKEYEDIT_DELETEWORD:
+		wsep = options_get_string(oo, "word-separators");
+		idx = c->prompt_index;
+
+		/* Find a non-separator. */
+		while (idx != 0) {
+			idx--;
+			if (!strchr(wsep, c->prompt_buffer[idx]))
+				break;
+		}
+
+		/* Find the separator at the beginning of the word. */
+		while (idx != 0) {
+			idx--;
+			if (strchr(wsep, c->prompt_buffer[idx])) {
+				/* Go back to the word. */
+				idx++;
+				break;
+			}
+		}
+
+		memmove(c->prompt_buffer + idx,
+		    c->prompt_buffer + c->prompt_index,
+		    size + 1 - c->prompt_index);
+		memset(c->prompt_buffer + size - (c->prompt_index - idx),
+		    '\0', c->prompt_index - idx);
+		c->prompt_index = idx;
+		c->flags |= CLIENT_STATUS;
+		break;
+	case MODEKEYEDIT_NEXTSPACE:
+		wsep = " ";
+		/* FALLTHROUGH */
+	case MODEKEYEDIT_NEXTWORD:
+		if (wsep == NULL)
+			wsep = options_get_string(oo, "word-separators");
+
+		/* Find a separator. */
+		while (c->prompt_index != size) {
+			c->prompt_index++;
+			if (strchr(wsep, c->prompt_buffer[c->prompt_index]))
+				break;
+		}
+
+		/* Find the word right after the separation. */
+		while (c->prompt_index != size) {
+			c->prompt_index++;
+			if (!strchr(wsep, c->prompt_buffer[c->prompt_index]))
+				break;
+		}
+
+		c->flags |= CLIENT_STATUS;
+		break;
+	case MODEKEYEDIT_NEXTSPACEEND:
+		wsep = " ";
+		/* FALLTHROUGH */
+	case MODEKEYEDIT_NEXTWORDEND:
+		if (wsep == NULL)
+			wsep = options_get_string(oo, "word-separators");
+
+		/* Find a word. */
+		while (c->prompt_index != size) {
+			c->prompt_index++;
+			if (!strchr(wsep, c->prompt_buffer[c->prompt_index]))
+				break;
+		}
+
+		/* Find the separator at the end of the word. */
+		while (c->prompt_index != size) {
+			c->prompt_index++;
+			if (strchr(wsep, c->prompt_buffer[c->prompt_index]))
+				break;
+		}
+
+		c->flags |= CLIENT_STATUS;
+		break;
+	case MODEKEYEDIT_PREVIOUSSPACE:
+		wsep = " ";
+		/* FALLTHROUGH */
+	case MODEKEYEDIT_PREVIOUSWORD:
+		if (wsep == NULL)
+			wsep = options_get_string(oo, "word-separators");
+
+		/* Find a non-separator. */
+		while (c->prompt_index != 0) {
+			c->prompt_index--;
+			if (!strchr(wsep, c->prompt_buffer[c->prompt_index]))
+				break;
+		}
+
+		/* Find the separator at the beginning of the word. */
+		while (c->prompt_index != 0) {
+			c->prompt_index--;
+			if (strchr(wsep, c->prompt_buffer[c->prompt_index])) {
+				/* Go back to the word. */
+				c->prompt_index++;
+				break;
+			}
+		}
+
+		c->flags |= CLIENT_STATUS;
+		break;
 	case MODEKEYEDIT_HISTORYUP:
 		histstr = status_prompt_up_history(&c->prompt_hindex);
 		if (histstr == NULL)
 			break;
-	       	xfree(c->prompt_buffer);
+		xfree(c->prompt_buffer);
 		c->prompt_buffer = xstrdup(histstr);
 		c->prompt_index = strlen(c->prompt_buffer);
 		c->flags |= CLIENT_STATUS;

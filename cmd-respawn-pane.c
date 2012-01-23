@@ -1,4 +1,4 @@
-/* $Id: cmd-respawn-pane.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-respawn-pane.c 2638 2011-11-25 13:30:45Z tcunha $ */
 
 /*
  * Copyright (c) 2008 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -49,15 +49,18 @@ cmd_respawn_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	struct session		*s;
 	struct environ		 env;
 	const char		*cmd;
-	char		 	*cause;
+	char			*cause;
+	u_int			 idx;
 
 	if ((wl = cmd_find_pane(ctx, args_get(args, 't'), &s, &wp)) == NULL)
 		return (-1);
 	w = wl->window;
 
 	if (!args_has(self->args, 'k') && wp->fd != -1) {
+		if (window_pane_index(wp, &idx) != 0)
+			fatalx("index not found");
 		ctx->error(ctx, "pane still active: %s:%u.%u",
-		    s->name, wl->idx, window_pane_index(w, wp));
+		    s->name, wl->idx, idx);
 		return (-1);
 	}
 

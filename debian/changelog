@@ -1,3 +1,63 @@
+tmux (1.6~svn2670-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2670).
+  * The new window option 'allow-rename' can be used to disable the screen
+    title setting escape sequence (closes: #654882).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 21 Jan 2012 21:38:18 +0100
+
+tmux (1.6~svn2647-2) experimental; urgency=low
+
+  * Disable cwd detection in FreeBSD osdep code to fix FTBFS on kfreebsd.
+  * Refresh, clean up and add DEP-3 headers to patches.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 10 Dec 2011 19:38:48 +0100
+
+tmux (1.6~svn2647-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2647).
+  * The working directory for new processes is now taken from the active
+    window if there is one (closes: #644781).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Fri, 09 Dec 2011 20:51:42 +0100
+
+tmux (1.6~svn2642-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2642).
+  * Add -Wl,--as-needed to LDFLAGS to lose extra dependency on libncurses5.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Fri, 25 Nov 2011 18:04:01 +0100
+
+tmux (1.6~svn2630-2) experimental; urgency=low
+
+  * Redo build flags handling:
+    + Enable hardening flags via dpkg-buildflags, not hardening-includes.
+    + Switch to debhelper compat level 9 to have build flags exported
+      automatically. This adds back -O2, which had gone missing.
+    + Adjust build-depends accordingly.
+  * Enable parallel build in debhelper.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Thu, 03 Nov 2011 22:55:04 +0100
+
+tmux (1.6~svn2630-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2630).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Tue, 01 Nov 2011 10:42:03 +0100
+
+tmux (1.6~svn2608-2) experimental; urgency=low
+
+  * Switch to libevent 2.0 and disable the epoll backend (closes: #631984).
+  * Add /usr/bin/tmux to /etc/shells (closes: #644813).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sun, 09 Oct 2011 17:52:50 +0200
+
+tmux (1.6~svn2608-1) experimental; urgency=low
+
+  * New upstream snapshot from Subversion (r2608).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Mon, 03 Oct 2011 21:13:21 +0200
+
 tmux (1.5-3) unstable; urgency=low
 
   * Add /usr/bin/tmux to /etc/shells (closes: #644813).

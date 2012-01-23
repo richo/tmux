@@ -1,4 +1,4 @@
-/* $Id: osdep-sunos.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: osdep-sunos.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Todd Carson <toc@daybefore.net>
@@ -41,14 +41,13 @@ osdep_get_name(int fd, char *tty)
 	if ((f = open(tty, O_RDONLY)) < 0)
 		return (NULL);
 
-	if ((fstat(f, &st) != 0) ||
-	    (ioctl(f, TIOCGPGRP, &pgrp) != 0)) {
+	if (fstat(f, &st) != 0 || ioctl(f, TIOCGPGRP, &pgrp) != 0) {
 		close(f);
 		return (NULL);
 	}
 	close(f);
 
-	xasprintf(&path, "/proc/%hu/psinfo", pgrp);
+	xasprintf(&path, "/proc/%u/psinfo", (u_int) pgrp);
 	f = open(path, O_RDONLY);
 	xfree(path);
 	if (f < 0)
@@ -63,6 +62,23 @@ osdep_get_name(int fd, char *tty)
 		return (NULL);
 
 	return (xstrdup(p.pr_fname));
+}
+
+char *
+osdep_get_cwd(pid_t pid)
+{
+	static char	 target[MAXPATHLEN + 1];
+	char		*path;
+	ssize_t		 n;
+
+	xasprintf(&path, "/proc/%u/path/cwd", (u_int) pid);
+	n = readlink(path, target, MAXPATHLEN);
+	xfree(path);
+	if (n > 0) {
+		target[n] = '\0';
+		return (target);
+	}
+	return (NULL);
 }
 
 struct event_base *

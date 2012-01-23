@@ -1,4 +1,4 @@
-/* $Id: cmd-attach-session.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-attach-session.c 2665 2012-01-21 19:30:07Z tcunha $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -76,6 +76,7 @@ cmd_attach_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 		ctx->curclient->session = s;
 		session_update_activity(s);
 		server_redraw_client(ctx->curclient);
+		s->curw->flags &= ~WINLINK_ALERTFLAGS;
 	} else {
 		if (!(ctx->cmdclient->flags & CLIENT_TERMINAL)) {
 			ctx->error(ctx, "not a terminal");
@@ -104,6 +105,7 @@ cmd_attach_session_exec(struct cmd *self, struct cmd_ctx *ctx)
 		environ_update(update, &ctx->cmdclient->environ, &s->environ);
 
 		server_redraw_client(ctx->cmdclient);
+		s->curw->flags &= ~WINLINK_ALERTFLAGS;
 	}
 	recalculate_sizes();
 	server_update_socket();

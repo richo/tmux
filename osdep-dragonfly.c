@@ -1,4 +1,4 @@
-/* $Id: osdep-openbsd.c 2647 2011-12-09 16:37:29Z nicm $ */
+/* $Id: osdep-dragonfly.c 2647 2011-12-09 16:37:29Z nicm $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -17,28 +17,31 @@
  */
 
 #include <sys/param.h>
-#include <sys/sysctl.h>
 #include <sys/stat.h>
+#include <sys/sysctl.h>
+#include <sys/user.h>
 
+#include <err.h>
 #include <errno.h>
 #include <event.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+struct kinfo_proc	*cmp_procs(struct kinfo_proc *, struct kinfo_proc *);
+char			*osdep_get_name(int, char *);
+char			*osdep_get_cwd(pid_t);
+struct event_base	*osdep_event_init(void);
 
 #ifndef nitems
 #define nitems(_a) (sizeof((_a)) / sizeof((_a)[0]))
 #endif
 
 #define is_runnable(p) \
-	((p)->p_stat == SRUN || (p)->p_stat == SIDL || (p)->p_stat == SONPROC)
+	((p)->kp_stat == SACTIVE || (p)->kp_stat == SIDL)
 #define is_stopped(p) \
-	((p)->p_stat == SSTOP || (p)->p_stat == SZOMB || (p)->p_stat == SDEAD)
-
-struct kinfo_proc	*cmp_procs(struct kinfo_proc *, struct kinfo_proc *);
-char			*osdep_get_name(int, char *);
-char			*osdep_get_cwd(pid_t);
-struct event_base	*osdep_event_init(void);
+	((p)->kp_stat == SSTOP || (p)->kp_stat == SZOMB)
 
 struct kinfo_proc *
 cmp_procs(struct kinfo_proc *p1, struct kinfo_proc *p2)
@@ -53,27 +56,12 @@ cmp_procs(struct kinfo_proc *p1, struct kinfo_proc *p2)
 	if (!is_stopped(p1) && is_stopped(p2))
 		return (p2);
 
-	if (p1->p_estcpu > p2->p_estcpu)
+	if (strcmp(p1->kp_comm, p2->kp_comm) < 0)
 		return (p1);
-	if (p1->p_estcpu < p2->p_estcpu)
+	if (strcmp(p1->kp_comm, p2->kp_comm) > 0)
 		return (p2);
 
-	if (p1->p_slptime < p2->p_slptime)
-		return (p1);
-	if (p1->p_slptime > p2->p_slptime)
-		return (p2);
-
-	if ((p1->p_flag & P_SINTR) && !(p2->p_flag & P_SINTR))
-		return (p1);
-	if (!(p1->p_flag & P_SINTR) && (p2->p_flag & P_SINTR))
-		return (p2);
-
-	if (strcmp(p1->p_comm, p2->p_comm) < 0)
-		return (p1);
-	if (strcmp(p1->p_comm, p2->p_comm) > 0)
-		return (p2);
-
-	if (p1->p_pid > p2->p_pid)
+	if (p1->kp_pid > p2->kp_pid)
 		return (p1);
 	return (p2);
 }
@@ -81,8 +69,7 @@ cmp_procs(struct kinfo_proc *p1, struct kinfo_proc *p2)
 char *
 osdep_get_name(int fd, char *tty)
 {
-	int		 mib[6] = { CTL_KERN, KERN_PROC, KERN_PROC_PGRP, 0,
-				    sizeof(struct kinfo_proc), 0 };
+	int		 mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_PGRP, 0 };
 	struct stat	 sb;
 	size_t		 len;
 	struct kinfo_proc *buf, *newbuf, *bestp;
@@ -105,7 +92,6 @@ retry:
 		goto error;
 	buf = newbuf;
 
-	mib[5] = (int)(len / sizeof(struct kinfo_proc));
 	if (sysctl(mib, nitems(mib), buf, &len, NULL, 0) == -1) {
 		if (errno == ENOMEM)
 			goto retry;
@@ -114,7 +100,7 @@ retry:
 
 	bestp = NULL;
 	for (i = 0; i < len / sizeof (struct kinfo_proc); i++) {
-		if ((dev_t)buf[i].p_tdev != sb.st_rdev)
+		if (buf[i].kp_tdev != sb.st_rdev)
 			continue;
 		if (bestp == NULL)
 			bestp = &buf[i];
@@ -124,7 +110,7 @@ retry:
 
 	name = NULL;
 	if (bestp != NULL)
-		name = strdup(bestp->p_comm);
+		name = strdup(bestp->kp_comm);
 
 	free(buf);
 	return (name);
@@ -134,16 +120,10 @@ error:
 	return (NULL);
 }
 
-char*
+char *
 osdep_get_cwd(pid_t pid)
 {
-	int		name[] = { CTL_KERN, KERN_PROC_CWD, (int)pid };
-	static char	path[MAXPATHLEN];
-	size_t		pathlen = sizeof path;
-
-	if (sysctl(name, 3, path, &pathlen, NULL, 0) != 0)
-		return (NULL);
-	return (path);
+	return (NULL);
 }
 
 struct event_base *

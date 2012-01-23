@@ -1,4 +1,4 @@
-/* $Id: compat.h 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: compat.h 2566 2011-07-22 15:10:24Z nicm $ */
 
 /*
  * Copyright (c) 2007 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -194,6 +194,11 @@ size_t	 	 strlcat(char *, const char *, size_t);
 #ifndef HAVE_DAEMON
 /* daemon.c */
 int	 	 daemon(int, int);
+#endif
+
+#ifndef HAVE_B64_NTOP
+/* b64_ntop.c */
+int		 b64_ntop(const char *, size_t, char *, size_t);
 #endif
 
 #ifndef HAVE_FORKPTY

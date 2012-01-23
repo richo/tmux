@@ -1,4 +1,4 @@
-/* $Id: cmd-pipe-pane.c 2553 2011-07-09 09:42:33Z tcunha $ */
+/* $Id: cmd-pipe-pane.c 2628 2011-10-31 13:55:43Z tcunha $ */
 
 /*
  * Copyright (c) 2009 Nicholas Marriott <nicm@users.sourceforge.net>
@@ -38,7 +38,7 @@ void	cmd_pipe_pane_error_callback(struct bufferevent *, short, void *);
 const struct cmd_entry cmd_pipe_pane_entry = {
 	"pipe-pane", "pipep",
 	"ot:", 0, 1,
-	CMD_TARGET_PANE_USAGE "[-o] [command]",
+	"[-o] " CMD_TARGET_PANE_USAGE " [command]",
 	0,
 	NULL,
 	NULL,
@@ -54,11 +54,9 @@ cmd_pipe_pane_exec(struct cmd *self, struct cmd_ctx *ctx)
 	char			*command;
 	int			 old_fd, pipe_fd[2], null_fd;
 
-	if ((c = cmd_find_client(ctx, NULL)) == NULL)
-		return (-1);
-
 	if (cmd_find_pane(ctx, args_get(args, 't'), NULL, &wp) == NULL)
 		return (-1);
+	c = cmd_find_client(ctx, NULL);
 
 	/* Destroy the old pipe. */
 	old_fd = wp->pipe_fd;
