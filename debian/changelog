@@ -1,3 +1,9 @@
+tmux (1.6-1) unstable; urgency=low
+
+  * New upstream release (closes: #657026).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Mon, 23 Jan 2012 19:20:48 +0100
+
 tmux (1.6~svn2670-1) experimental; urgency=low
 
   * New upstream snapshot from Subversion (r2670).
