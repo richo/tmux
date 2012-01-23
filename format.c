@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: format.c 2672 2012-01-22 23:41:34Z tcunha $ */
 
 /*
  * Copyright (c) 2011 Nicholas Marriott <nicm@users.sourceforge.net>
