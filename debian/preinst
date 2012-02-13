@@ -7,8 +7,4 @@ if [ "$1" = "upgrade" ] && dpkg --compare-versions "$2" 'lt' "1.5-2"; then
     update-rc.d -f tmux-cleanup remove >/dev/null
 fi
 
-if dpkg-maintscript-helper supports rm_conffile; then
-    dpkg-maintscript-helper rm_conffile /etc/init.d/tmux-cleanup 1.4-6 -- "$@"
-fi
-
 #DEBHELPER#

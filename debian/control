@@ -14,6 +14,7 @@ Vcs-Git: git://git.debian.org/collab-maint/tmux.git
 
 Package: tmux
 Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: terminal multiplexer
  tmux enables a number of terminals (or windows) to be accessed and
