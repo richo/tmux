@@ -1,3 +1,14 @@
+tmux (1.6-2) UNRELEASED; urgency=low
+
+  [ Colin Watson ]
+  * Use maintscript support in dh_installdeb rather than writing out
+    dpkg-maintscript-helper commands by hand.  We now simply Pre-Depend on a
+    new enough version of dpkg rather than using 'dpkg-maintscript-helper
+    supports' guards, leading to more predictable behaviour on upgrades
+    (closes: #659794).
+
+ -- Romain Francoise <rfrancoise@debian.org>  Mon, 13 Feb 2012 23:34:25 +0100
+
 tmux (1.6-1) unstable; urgency=low
 
   * New upstream release (closes: #657026).
