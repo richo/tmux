@@ -1,4 +1,4 @@
-tmux (1.6-2) UNRELEASED; urgency=low
+tmux (1.6-2) unstable; urgency=low
 
   [ Colin Watson ]
   * Use maintscript support in dh_installdeb rather than writing out
@@ -7,7 +7,12 @@ tmux (1.6-2) UNRELEASED; urgency=low
     supports' guards, leading to more predictable behaviour on upgrades
     (closes: #659794).
 
- -- Romain Francoise <rfrancoise@debian.org>  Mon, 13 Feb 2012 23:34:25 +0100
+  [ Romain Francoise ]
+  * Quote backslash in examples/screen-keys.conf to avoid syntax error
+    (closes: #662250).
+  * Bump Standards-Version to 3.9.3.
+
+ -- Romain Francoise <rfrancoise@debian.org>  Sat, 17 Mar 2012 11:42:28 +0100
 
 tmux (1.6-1) unstable; urgency=low
 
