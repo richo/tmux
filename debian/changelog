@@ -1,3 +1,9 @@
+tmux (1.6-psych0tiklucid.1) unstable; urgency=low
+
+  * Bump for lucid
+
+ -- Rich Healey <richo@psych0tik.net>  Thu, 29 Mar 2012 20:15:23 -0700
+
 tmux (1.6-2) unstable; urgency=low
 
   [ Colin Watson ]
@@ -136,7 +142,7 @@ tmux (1.4-9) unstable; urgency=low
 tmux (1.4-8) unstable; urgency=low
 
   * Fix "tmux segfaults with [lost server] if second pane is closed
-    after third pane has been broke out" by patch 99_upstream.diff 
+    after third pane has been broke out" by patch 99_upstream.diff
     (Closes: #622677).
 
  -- Karl Ferdinand Ebert <kfebert@gmail.com>  Tue, 10 May 2011 23:39:17 +0200
